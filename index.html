@@ -257,40 +257,6 @@ var FORMS = [
    vi:'Tôi đã trao đổi và được tổ trưởng cho phép',id:'Saya sudah berkonsultasi dan diizinkan kepala regu'}
  ]},
 
-{k:'出張報告書', em:'🚄', sum:['to','from','till'], jaOnly:1,
- ja:'出張報告書',
- f:[
-  {k:'to',t:'text',req:1,ja:'訪問先'},
-  {k:'addr',t:'text',ja:'所在地'},
-  {k:'from',t:'date',req:1,ja:'期間（開始）'},
-  {k:'till',t:'date',req:1,ja:'期間（終了）'},
-  {k:'task',t:'area',req:1,ja:'用務'},
-  {k:'cost',t:'num',amt:1,ja:'旅費 合計（円）'},
-  {k:'breakdown',t:'area',ja:'旅費の内訳'},
-  {k:'note',t:'area',req:1,ja:'気づきと改善'}
- ]},
-
-{k:'出張報告書(1週間用)', em:'📅', sum:['to','from','till'], jaOnly:1,
- ja:'出張報告書（1週間用）',
- note:{ja:'報告は1日あたりA4用紙1枚以上。内容に「気づき」と「改善」を書いてください。'},
- f:[
-  {k:'to',t:'text',req:1,ja:'訪問先'},
-  {k:'addr',t:'text',ja:'所在地'},
-  {k:'from',t:'date',req:1,ja:'期間（開始）'},
-  {k:'till',t:'date',req:1,ja:'期間（終了）'},
-  {k:'days',t:'num',ja:'日数'},
-  {k:'task',t:'area',req:1,ja:'用務'},
-  {k:'d1',t:'area',ja:'1日目の概要'},
-  {k:'d2',t:'area',ja:'2日目の概要'},
-  {k:'d3',t:'area',ja:'3日目の概要'},
-  {k:'d4',t:'area',ja:'4日目の概要'},
-  {k:'d5',t:'area',ja:'5日目の概要'},
-  {k:'d6',t:'area',ja:'6日目の概要'},
-  {k:'d7',t:'area',ja:'7日目の概要'},
-  {k:'cost',t:'num',amt:1,ja:'旅費 合計（円）'},
-  {k:'note',t:'area',req:1,ja:'気づきと改善'}
- ]},
-
 {k:'資格取得制度申請書', em:'🎓', sum:['name','fee'], jaOnly:1,
  ja:'資格取得制度申請書',
  note:{ja:'・自己負担した場合は領収書を添付してください。\n・汎用性のある免許は貸付となるため、誓約書の添付が必要です。'},
@@ -321,18 +287,6 @@ var FORMS = [
   {k:'fee',t:'num',amt:1,ja:'受験料（円）'},
   {k:'trans',t:'num',amt:1,ja:'交通費（円）'},
   {k:'memo',t:'area',ja:'備考'}
- ]},
-
-{k:'その他申請', em:'💬', sum:['title'],
- ja:'その他の申請・相談', vi:'Đơn khác / Xin ý kiến', id:'Pengajuan lain / Konsultasi',
- note:{ja:'決まった用紙がないものは、ここから出してください。',
-       vi:'Nếu không có mẫu sẵn, hãy gửi từ đây.',
-       id:'Jika tidak ada formulir baku, ajukan dari sini.'},
- f:[
-  {k:'title',t:'text',req:1,ja:'件名',vi:'Tiêu đề',id:'Judul'},
-  {k:'body',t:'area',req:1,ja:'内容',vi:'Nội dung',id:'Isi'},
-  {k:'amount',t:'num',amt:1,ja:'金額（円・あれば）',vi:'Số tiền (nếu có)',id:'Jumlah uang (jika ada)'},
-  {k:'due',t:'date',ja:'希望期日',vi:'Ngày mong muốn',id:'Tanggal yang diinginkan'}
  ]}
 ];
 
@@ -726,7 +680,9 @@ function submit(F,btn){
                       amount:c.amount, fields:c.fields}], function(r){
     btn.disabled=false; btn.textContent=T(UI.send);
     if(!r||!r.ok){ toast((r&&r.msg)||'送信できませんでした'); return; }
-    toast(T(UI.sent)+'（'+r.id+'）→ '+r.boss+' さんへ');
+    /* 承認者が「なし」の人（執行役など）は、出した時点で受付完了 */
+    toast(r.done ? '出しました（'+r.id+'）承認は不要です。記録に残りました'
+                 : T(UI.sent)+'（'+r.id+'）→ '+r.boss+' さんへ');
     reset('mine');
   });
 }
@@ -792,10 +748,13 @@ function vDetail(r){
       '<div class="kv"><b>申請番号</b><span>'+esc(r.id)+'</span></div>'+
       '<div class="kv"><b>申請者</b><span>'+esc(r.applicant)+'（'+esc(r.dept)+'／'+esc(r.site)+'）</span></div>'+
       '<div class="kv"><b>申請日時</b><span>'+esc(r.submitted)+'</span></div>'+
-      '<div class="kv"><b>承認者</b><span>'+esc(r.boss)+(r.bossAt?'　'+esc(r.bossAt):'　未')+
+      /* 承認者が空の申請は「承認不要」で完了しているので、そう見せる */
+      '<div class="kv"><b>承認者</b><span>'+(r.boss
+          ? esc(r.boss)+(r.bossAt?'　'+esc(r.bossAt):'　未')
+          : '承認不要'+(r.bossAt?'　'+esc(r.bossAt):''))+
         (r.bossComment?'\n'+esc(r.bossComment):'')+'</span></div>'+
-      '<div class="kv"><b>2段目</b><span>'+esc(r.exec)+(r.execAt?'　'+esc(r.execAt):'　未')+
-        (r.execComment?'\n'+esc(r.execComment):'')+'</span></div>'+
+      (r.exec?'<div class="kv"><b>2段目</b><span>'+esc(r.exec)+(r.execAt?'　'+esc(r.execAt):'　未')+
+        (r.execComment?'\n'+esc(r.execComment):'')+'</span></div>':'')+
       (Number(r.amount)?'<div class="kv"><b>金額</b><span>'+Number(r.amount).toLocaleString()+' 円</span></div>':'')+
       '</div>');
 
