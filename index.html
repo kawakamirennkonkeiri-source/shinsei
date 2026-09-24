@@ -132,7 +132,7 @@ var UI = {
   visa:{ja:'ビザ・在留資格',vi:'Visa / Tư cách lưu trú',id:'Visa / Izin Tinggal'},
   visaS:{ja:'Googleフォームへ',vi:'Chuyển sang Google Form',id:'Ke Google Form'},
   visaNote:{ja:'ビザ・在留資格の手続きは Googleフォーム で受け付けます。タップするとフォームが開きます。ログインは要りません。書類の写真は添付できないので、必要なときは担当者に直接渡してください。',
-            vi:'Thủ tục visa / tư cách lưu trú nhận qua Google Form. Bấm vào để mở form. Không cần đăng nhập. Không đính kèm được ảnh giấy tờ, khi cần hãy đưa trực tiếp cho người phụ trách.',
+            vi:'Thủ tục visa / tư cách lưu trú nh���n qua Google Form. Bấm vào để mở form. Không cần đăng nhập. Không đính kèm được ảnh giấy tờ, khi cần hãy đưa trực tiếp cho người phụ trách.',
             id:'Prosedur visa / izin tinggal diterima lewat Google Form. Ketuk untuk membuka form. Tidak perlu login. Foto dokumen tidak bisa dilampirkan, bila perlu serahkan langsung ke penanggung jawab.'},
   waitHead:{ja:'承認をお待ちしています',vi:'Đang chờ phê duyệt',id:'Menunggu persetujuan'},
   waitCall:{ja:'この画面を見た人は、上に名前が出ている人へ声をかけてください。「承認が溜まっています」と伝えるだけで大丈夫です。',
@@ -164,7 +164,7 @@ var HHMM = (function(){
 })();
 /* 時間数のプルダウン */
 var HOURS = ['0.5時間','1時間','1.5時間','2時間','2.5時間','3時間','3.5時間','4時間',
-             '4.5時間','5時間','6時間','7時間','8時間'];
+             '4.5時間','5時間','6時間','7時間','8���間'];
 
 /* =============================================================
  *  申請フォームの定義（ここを増やせば申請種類が増えます）
@@ -259,7 +259,7 @@ var FORMS = [
 
 {k:'資格取得制度申請書', em:'🎓', sum:['name','fee'], jaOnly:1,
  ja:'資格取得制度申請書',
- note:{ja:'・自己負担した場合は領収書を添付してください。\n・汎用性のある免許は貸付となるため、誓約書の添付が必要です。'},
+ note:{ja:'・自己負担した場合は領収書を添付してください。\n・汎用性のある免許は貸���となるため、誓約書の添付が必要です。'},
  f:[
   {k:'birth',t:'date',ja:'生年月日'},
   {k:'tel',t:'text',ja:'電話番号'},
@@ -293,7 +293,7 @@ var FORMS = [
 /* =============================================================
  *  状態
  * ============================================================= */
-/* データのやり取り先。画面はGoogleの外（GitHub Pages）に置き、ここへ投げる。
+/* データのやり取り先���画面はGoogleの外（GitHub Pages）に置き、ここへ投げる。
    Cookieを送らない通信なので、Googleに複数アカウントでログインしていても影響を受けない。
    デプロイをやり直してURLが変わったら API を差し替える。TOKEN は Code.gs の API_TOKEN と必ず同じにする。 */
 var API   = 'https://script.google.com/macros/s/AKfycbzHhCxNy0gyfXFrUusENS4Un3qjdv4cWqlMbIOKP8mMMkJZmCpCObyCDDNiJkjeRbU7/exec';
@@ -305,6 +305,19 @@ var ME = null;            // {name, dept, isApprover, title, tier}
 var VIEW = [];            // 画面スタック
 var CUR = null;           // 表示中フォーム
 
+/* === 速度改善：読み取り結果を一時保存して、押した瞬間に表示する ===
+   ・保存するのは「見るだけ」の画面のデータだけ（下のCACHE_TTLにある種類）
+   ・申請・承認をしたら clearCache() で必ず捨てて、最新を取り直す
+   ・保存はこのページを開いている間だけ（閉じると消える）*/
+var CACHE = {};
+var CACHE_TTL = {          // ミリ秒。この時間内はもう一度通信せず即表示する
+  api_inbox:     60000,    // 確認待ち：60秒
+  api_myList:    60000,    // 自分の申請：60秒
+  api_board:    120000,    // みんなの状況：120秒
+  api_dashboard:120000     // ダッシュボード：120秒
+};
+function clearCache(){ CACHE = {}; }   // 申請・承認・交代のあとに呼ぶ
+
 function $(id){ return document.getElementById(id); }
 function el(h){ var d=document.createElement('div'); d.innerHTML=h; return d.firstElementChild; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
@@ -314,6 +327,12 @@ function toast(m){ var t=$('toast'); t.textContent=m; t.className='on';
 
 function call(fn, args, cb){
   if(DEMO) return setTimeout(function(){ cb(demo(fn,args)); },140);
+  var key = fn + JSON.stringify(args||[]);
+  var useCache = CACHE_TTL.hasOwnProperty(fn);   // 「見るだけ」の画面だけ対象
+  // 新しいキャッシュがあれば、通信せずその場で表示（＝押した瞬間に出る）
+  if(useCache && CACHE[key] && (Date.now() - CACHE[key].time) < CACHE_TTL[fn]){
+    return cb(CACHE[key].data);
+  }
   // Content-Type を text/plain にすると事前確認の通信が発生せず、そのまま通る
   fetch(API, {
     method:'POST',
@@ -323,6 +342,7 @@ function call(fn, args, cb){
   .then(function(r){ return r.json(); })
   .then(function(j){
     if(!j || !j.ok){ toast((j&&j.msg)||'通信エラー'); return; }
+    if(useCache){ CACHE[key] = {data:j.data, time:Date.now()}; }  // 次回のために保存
     cb(j.data);
   })
   .catch(function(e){ toast('つながりませんでした。電波を確かめてもう一度ためしてください'); });
@@ -337,7 +357,7 @@ function seedDemo(){
     {id:'D-0001',_at:ago(12),type:'社用車使用申請書',applicant:'見本　生産社員',dept:'生産',site:'熊本',
      boss:'見本　生産執行役',exec:'',state:'承認待ち',summary:'熊本→広島 出荷応援',amount:0,
      fields:[{k:'purpose',label:'使用目的',value:'東広島事業所へ出荷の応援に行くため'},
-             {k:'dest',label:'目的地',value:'東広島事業所'},{k:'car',label:'車種',value:'ハイエース'}]},
+             {k:'dest',label:'目的地',value:'東広島事���所'},{k:'car',label:'車種',value:'ハイエース'}]},
     {id:'D-0002',_at:ago(7),type:'残業申請書',applicant:'見本　センター社員',dept:'センター',site:'熊本',
      boss:'見本　センター執行役',exec:'',state:'承認待ち',summary:'17:30 / 2時間 / ヘルプ',amount:0,
      fields:[{k:'time',label:'予定時間（残業を始める時間）',value:'17:30'},
@@ -350,7 +370,7 @@ function seedDemo(){
              {k:'talked',label:'職長に相談して許可をもらいました',value:'はい'}]},
     {id:'D-0004',_at:ago(2),type:'有給休暇届',applicant:'MIHON A',dept:'生産',site:'熊本',
      boss:'見本　生産執行役',exec:'',state:'承認待ち',summary:'年次有給休暇 / 9/10 〜 9/11 / 2',amount:0,
-     fields:[{k:'kubun',label:'休暇区分',value:'年次有給休暇'},{k:'days',label:'日数',value:'2'}]}
+     fields:[{k:'kubun',label:'��暇区分',value:'年次有給休暇'},{k:'days',label:'日数',value:'2'}]}
   ];
   s.forEach(function(r){ r.submitted=fmt(r._at); });
   localStorage.setItem('kr_demo',JSON.stringify(s));
@@ -371,7 +391,7 @@ window.onload = function(){
 function go(v,arg){ VIEW.push([v,arg]); render(); }
 function back(){ if(VIEW.length>1){ VIEW.pop(); render(); } }
 function reset(v){ VIEW=[[v,null]]; render(); }
-function logout(){ ME=null; localStorage.removeItem('kr_me'); reset('login'); }
+function logout(){ ME=null; clearCache(); localStorage.removeItem('kr_me'); reset('login'); }
 
 function render(){
   var cur = VIEW[VIEW.length-1];
@@ -617,7 +637,7 @@ function vForm(key){
       var loc = (fl.oL && fl.oL[lang]) ? fl.oL[lang] : null;
       body='<select id="'+id+'"><option value=""></option>'+
         fl.o.map(function(o,i){
-          var show = loc ? (loc[i]+'（'+o+'）') : o;      // 現地語（日本語）で併記
+          var show = loc ? (loc[i]+'（'+o+'）') : o;      // 現地語（��本語）で併記
           return '<option value="'+esc(o)+'">'+esc(show)+'</option>';
         }).join('')+'</select>';
     } else if(fl.t==='area'){
@@ -683,6 +703,7 @@ function submit(F,btn){
     /* 承認者が「なし」の人（執行役など）は、出した時点で受付完了 */
     toast(r.done ? '出しました（'+r.id+'）承認は不要です。記録に残りました'
                  : T(UI.sent)+'（'+r.id+'）→ '+r.boss+' さんへ');
+    clearCache();   // 申請したので、古い一覧は捨てて最新を取り直す
     reset('mine');
   });
 }
@@ -791,6 +812,7 @@ function decide(r,act,cm,btn){
     btn.disabled=false; btn.textContent=old;
     if(!res||!res.ok){ toast((res&&res.msg)||'できませんでした'); return; }
     toast(act==='approve'?('承認しました → '+res.state):'差戻しました');
+    clearCache();   // 承認・差戻しをしたので、古い一覧は捨てて最新を取り直す
     reset('inbox');
   });
 }
@@ -873,7 +895,7 @@ function demo(fn,args){
     var p=args[0], all=dstore();
     var e=DEMO_EMP.filter(function(x){return dnorm(x.name)===dnorm(p.empName);})[0]||{dept:'',site:'',no:'',boss:'見本　専務'};
     var exec = (p.type==='一時帰国希望申請書'||Number(p.amount)>=100000)
-      ? '見本　社長' : '見本　専務';
+      ? '見本　���長' : '見本　専務';
     var r={id:'D-'+('000'+(all.length+1)).slice(-4), submitted:new Date().toISOString().slice(0,16).replace('T',' '),
       _at:new Date().toISOString(), type:p.type, applicant:p.empName, empNo:e.no, dept:e.dept, site:e.site,
       boss:e.boss, exec:'', state:'承認待ち', bossAt:'', bossComment:'', execAt:'', execComment:'',
