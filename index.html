@@ -1,5 +1,4 @@
-<!-- 株式会社カワカミ蓮根 申請承認アプリ  index.html  ver1.1  2026-09-24 改良版 -->
-<!-- パフォーマンス改善：キャッシング＆即座UI フィードバック -->
+<!-- 株式会社カワカミ蓮根 申請承認アプリ  index.html  ver1.0  2026-08-20 -->
 <!-- Apps Script では このファイルを「index」という名前のHTMLファイルとして貼ってください -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -89,13 +88,6 @@
     color:#a5281a;font-weight:700;font-size:17px;line-height:1.5}
   .alert .btn{padding:14px;font-size:17px;margin:0}
   .hint{font-size:13px;color:var(--sub);margin:6px 0 0}
-  /* === パフォーマンス改善：スケルトンスクリーン === */
-  .skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);
-    background-size:200% 100%;animation:shimmer 1.5s infinite;height:20px;border-radius:4px;margin:10px 0}
-  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-  .loading-spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--line);
-    border-top-color:var(--g);border-radius:50%;animation:spin .6s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
 <header>
@@ -113,47 +105,205 @@
  * ============================================================= */
 var LANGS = [['日本語','ja'],['Tiếng Việt','vi'],['Bahasa','id']];
 var lang = localStorage.getItem('kr_lang') || 'ja';
+function T(o){ if(!o) return ''; return (typeof o==='string') ? o : (o[lang]||o.ja||''); }
 
-/* 多言語テキスト（省略） */
 var UI = {
-  loading:'読み込み中...',
-  newReq:'新しい申請',
-  newReqS:'作成',
-  mine:'自分の申請',
-  mineS:'確認',
-  inbox:'確認待ち',
-  inboxS:'承認',
-  board:'みんなの状況',
-  boardS:'確認',
-  dash:'ダッシュボード',
-  dashS:'分析',
-  none:'なし',
-  boardNone:'承認待ちはすべて終了',
-  banner:'⚠ 3営業日以上、確認待ちのまま',
-  cases:'件',
-  longest:'最長',
-  days:'日',
-  bannerGo:'確認する'
+  who:{ja:'あなたは誰ですか？',vi:'Bạn là ai?',id:'Siapa Anda?'},
+  search:{ja:'名前をさがす',vi:'Tìm tên',id:'Cari nama'},
+  pin:{ja:'あなたの社員番号を入れてください',vi:'Nhập số nhân viên của bạn',id:'Masukkan nomor karyawan Anda'},
+  newReq:{ja:'申請する',vi:'Gửi đơn',id:'Ajukan'},
+  newReqS:{ja:'用紙はいりません',vi:'Không cần giấy',id:'Tanpa kertas'},
+  mine:{ja:'自分の申請',vi:'Đơn của tôi',id:'Pengajuan saya'},
+  mineS:{ja:'今どこまで進んだか見る',vi:'Xem đang ở đâu',id:'Lihat statusnya'},
+  inbox:{ja:'承認する',vi:'Phê duyệt',id:'Menyetujui'},
+  inboxS:{ja:'あなたの承認待ち',vi:'Đang chờ bạn',id:'Menunggu Anda'},
+  dash:{ja:'全社の滞留',vi:'Toàn công ty',id:'Seluruh perusahaan'},
+  dashS:{ja:'誰の手元で止まっているか',vi:'Đang dừng ở ai',id:'Tertahan di siapa'},
+  board:{ja:'みんなの承認状況',vi:'Tình hình phê duyệt',id:'Status persetujuan'},
+  boardS:{ja:'誰の所で何件 止まっているか',vi:'Ai đang giữ bao nhiêu đơn',id:'Siapa menahan berapa'},
+  boardNone:{ja:'止まっている申請はありません',vi:'Không có đơn nào bị dừng',id:'Tidak ada yang tertahan'},
+  boardNote:{ja:'件数と日数だけ全員に見えます。申請の中身は 本人と承認者だけ が見られます。',
+             vi:'Mọi người chỉ thấy số đơn và số ngày. Nội dung đơn chỉ người gửi và người phê duyệt xem được.',
+             id:'Semua orang hanya melihat jumlah dan hari. Isi pengajuan hanya pengaju dan penyetuju yang bisa lihat.'},
+  banner:{ja:'あなたの承認が止まっています',vi:'Đơn đang chờ bạn phê duyệt',id:'Ada yang menunggu persetujuan Anda'},
+  bannerGo:{ja:'今すぐ承認する',vi:'Phê duyệt ngay',id:'Setujui sekarang'},
+  cases:{ja:'件',vi:'đơn',id:'pengajuan'},
+  longest:{ja:'最長',vi:'Lâu nhất',id:'Terlama'},
+  visa:{ja:'ビザ・在留資格',vi:'Visa / Tư cách lưu trú',id:'Visa / Izin Tinggal'},
+  visaS:{ja:'Googleフォームへ',vi:'Chuyển sang Google Form',id:'Ke Google Form'},
+  visaNote:{ja:'ビザ・在留資格の手続きは Googleフォーム で受け付けます。タップするとフォームが開きます。ログインは要りません。書類の写真は添付できないので、必要なときは担当者に直接渡してください。',
+            vi:'Thủ tục visa / tư cách lưu trú nhận qua Google Form. Bấm vào để mở form. Không cần đăng nhập. Không đính kèm được ảnh giấy tờ, khi cần hãy đưa trực tiếp cho người phụ trách.',
+            id:'Prosedur visa / izin tinggal diterima lewat Google Form. Ketuk untuk membuka form. Tidak perlu login. Foto dokumen tidak bisa dilampirkan, bila perlu serahkan langsung ke penanggung jawab.'},
+  waitHead:{ja:'承認をお待ちしています',vi:'Đang chờ phê duyệt',id:'Menunggu persetujuan'},
+  waitCall:{ja:'この画面を見た人は、上に名前が出ている人へ声をかけてください。「承認が溜まっています」と伝えるだけで大丈夫です。',
+            vi:'Ai nhìn thấy màn hình này, xin hãy nhắc người có tên ở trên. Chỉ cần nói “đơn đang chờ anh/chị phê duyệt”.',
+            id:'Siapa pun yang melihat layar ini, tolong ingatkan orang yang namanya tertera di atas. Cukup bilang “ada pengajuan menunggu persetujuan Anda”.'},
+  waitNone:{ja:'今、止まっている申請はありません',vi:'Hiện không có đơn nào bị treo',id:'Saat ini tidak ada pengajuan yang tertahan'},
+  pick:{ja:'どの申請ですか？',vi:'Đơn loại nào?',id:'Formulir yang mana?'},
+  send:{ja:'この内容で申請する',vi:'Gửi đơn này',id:'Kirim pengajuan ini'},
+  sent:{ja:'申請しました',vi:'Đã gửi',id:'Terkirim'},
+  need:{ja:'を入れてください',vi:'chưa được nhập',id:'belum diisi'},
+  none:{ja:'ありません',vi:'Không có',id:'Tidak ada'},
+  ok:{ja:'承認する',vi:'Phê duyệt',id:'Setujui'},
+  ng:{ja:'差戻し',vi:'Trả lại',id:'Kembalikan'},
+  cm:{ja:'コメント（差戻しのときは理由を書いてください）',vi:'Ghi chú',id:'Komentar'},
+  waitB:{ja:'承認待ち',vi:'Chờ phê duyệt',id:'Menunggu persetujuan'},
+  waitE:{ja:'2段目の承認待ち',vi:'Chờ phê duyệt bước 2',id:'Menunggu persetujuan tahap 2'},
+  done:{ja:'承認されました',vi:'Đã được duyệt',id:'Sudah disetujui'},
+  back2:{ja:'差戻されました',vi:'Bị trả lại',id:'Dikembalikan'},
+  days:{ja:'営業日 経過',vi:'ngày làm việc',id:'hari kerja'},
+  yes:{ja:'はい',vi:'Có',id:'Ya'}, no:{ja:'いいえ',vi:'Không',id:'Tidak'},
+  loading:{ja:'よみこみ中…',vi:'Đang tải…',id:'Memuat…'}
 };
 
-function T(s){ return s; }
+/* 時刻のプルダウン（4:00〜22:00 を30分きざみ） */
+var HHMM = (function(){
+  var a=[];
+  for(var h=4; h<=22; h++){ a.push(h+':00'); if(h<22) a.push(h+':30'); }
+  return a;
+})();
+/* 時間数のプルダウン */
+var HOURS = ['0.5時間','1時間','1.5時間','2時間','2.5時間','3時間','3.5時間','4時間',
+             '4.5時間','5時間','6時間','7時間','8時間'];
 
-var API = 'https://script.google.com/macros/s/AKfycbzHhCxNy0gyfXFrUusENS4Un3qjdv4cWqlMbIOKP8mMMkJZmCpCObyCDDNiJkjeRbU7/exec';  // ← Apps ScriptのデプロイURL
+/* =============================================================
+ *  申請フォームの定義（ここを増やせば申請種類が増えます）
+ *  t: date/datetime/time/num/text/area/select/checks/check
+ *  o: 選択肢（この値がそのままシートに入る）
+ *  oL: 選択肢の外国語表示（値は o のまま。{vi:[...], id:[...]}）
+ *  req: 必須 / reqIf:{k:'別の項目',v:'その値のとき'} で条件つき必須
+ * ============================================================= */
+var FORMS = [
+{k:'有給休暇届', em:'🌴', sum:['kubun','from','to','days'],
+ ja:'有給休暇届', vi:'Đơn xin nghỉ phép có lương', id:'Formulir Cuti Berbayar',
+ f:[
+  {k:'kubun',t:'select',req:1,o:['年次有給休暇','半日（午前）','半日（午後）','時間単位'],
+   ja:'休暇区分',vi:'Loại nghỉ',id:'Jenis cuti'},
+  {k:'from',t:'date',req:1,ja:'開始日',vi:'Ngày bắt đầu',id:'Tanggal mulai'},
+  {k:'to',t:'date',req:1,ja:'終了日',vi:'Ngày kết thúc',id:'Tanggal selesai'},
+  {k:'days',t:'num',req:1,ja:'日数',vi:'Số ngày',id:'Jumlah hari'},
+  {k:'reason',t:'area',ja:'理由（任意）',vi:'Lý do (nếu có)',id:'Alasan (opsional)'}
+ ]},
+
+{k:'残業申請書', em:'🕗', sum:['date','time','hours','reason'],
+ ja:'残業申請書', vi:'Đơn xin làm thêm giờ', id:'Permohonan Kerja Lembur',
+ note:{ja:'1時間以上の残業が見込まれるときに、事前に申請してください。',
+       vi:'Nếu dự kiến làm thêm từ 1 giờ trở lên, hãy xin phép trước.',
+       id:'Ajukan sebelumnya jika diperkirakan lembur 1 jam atau lebih.'},
+ f:[
+  {k:'date',t:'date',req:1,ja:'残業実施日',vi:'Ngày làm thêm',id:'Tanggal lembur'},
+  {k:'time',t:'select',req:1,o:HHMM,
+   ja:'予定時間（残業を始める時間）',vi:'Thời gian dự kiến (giờ bắt đầu)',id:'Perkiraan waktu (jam mulai)'},
+  {k:'hours',t:'select',req:1,o:HOURS,
+   ja:'予定 時間数',vi:'Số giờ dự kiến',id:'Perkiraan jumlah jam'},
+  {k:'reason',t:'select',req:1,
+   o:['ヘルプ','会議時間超過','自部署業務遅延','その他'],
+   oL:{vi:['Hỗ trợ bộ phận khác','Họp kéo dài quá giờ','Công việc bộ phận mình bị chậm','Khác'],
+       id:['Bantu bagian lain','Rapat melebihi waktu','Pekerjaan bagian sendiri terlambat','Lainnya']},
+   ja:'残業理由',vi:'Lý do làm thêm',id:'Alasan lembur'},
+  {k:'reason2',t:'area',reqIf:{k:'reason',v:'その他'},
+   ja:'「その他」を選んだときは、ここに理由を書いてください',
+   vi:'Nếu chọn "Khác", hãy ghi lý do ở đây',
+   id:'Jika memilih "Lainnya", tulis alasannya di sini'},
+  {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
+ ]},
+
+{k:'社用車使用申請書', em:'🚙', sum:['from','to','dest'],
+ ja:'社用車使用申請書', vi:'Đơn xin dùng xe công ty', id:'Penggunaan Mobil Perusahaan',
+ note:{ja:'社用車は5:00〜20:00の使用です。それ以外の時間と休日は申請が必要です。\n無断で使用した事故・修理の賠償は個人負担になります。',
+       vi:'Xe công ty dùng từ 5:00 đến 20:00. Ngoài giờ đó và ngày nghỉ phải xin phép.\nTự ý sử dụng thì tai nạn và sửa chữa phải tự chịu.',
+       id:'Mobil perusahaan dipakai 5:00–20:00. Di luar jam itu dan hari libur harus izin.\nJika dipakai tanpa izin, biaya kecelakaan dan perbaikan ditanggung sendiri.'},
+ f:[
+  {k:'from',t:'datetime',req:1,ja:'使用開始',vi:'Bắt đầu dùng',id:'Mulai pakai'},
+  {k:'to',t:'datetime',req:1,ja:'使用終了',vi:'Kết thúc dùng',id:'Selesai pakai'},
+  {k:'purpose',t:'area',req:1,ja:'使用目的',vi:'Mục đích',id:'Tujuan'},
+  {k:'car',t:'text',ja:'車種',vi:'Loại xe',id:'Jenis mobil'},
+  {k:'no',t:'text',ja:'ナンバー',vi:'Biển số',id:'Nomor plat'},
+  {k:'dep',t:'text',ja:'出発地',vi:'Điểm đi',id:'Titik awal'},
+  {k:'dest',t:'text',req:1,ja:'目的地',vi:'Điểm đến',id:'Tujuan lokasi'},
+  {k:'pax',t:'text',ja:'同乗者',vi:'Người đi cùng',id:'Penumpang'},
+  {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
+ ]},
+
+{k:'通勤手当申請書', em:'🛣️', sum:['kubun','way','km'],
+ ja:'通勤手当申請書', vi:'Đơn xin phụ cấp đi lại', id:'Tunjangan Transportasi',
+ note:{ja:'自動車・バイクの方は 免許証／車検証／任意保険証 のコピーを提出してください。',
+       vi:'Nếu đi ô tô hoặc xe máy, hãy nộp bản copy: giấy phép lái xe, giấy kiểm định, bảo hiểm tự nguyện.',
+       id:'Jika pakai mobil/motor, serahkan fotokopi: SIM, STNK (shaken), dan asuransi sukarela.'},
+ f:[
+  {k:'kubun',t:'select',req:1,o:['新規','変更','継続'],ja:'区分',vi:'Loại',id:'Kategori'},
+  {k:'way',t:'select',req:1,o:['自動車','バイク','自転車','徒歩','公共交通'],
+   ja:'通勤手段',vi:'Phương tiện',id:'Sarana'},
+  {k:'addr',t:'area',req:1,ja:'住所',vi:'Địa chỉ',id:'Alamat'},
+  {k:'route',t:'area',req:1,ja:'通勤経路',vi:'Lộ trình',id:'Rute'},
+  {k:'km',t:'num',req:1,ja:'会社までの距離（片道 km）',vi:'Khoảng cách 1 chiều (km)',id:'Jarak satu arah (km)'},
+  {k:'docs',t:'checks',o:['免許証コピー','車検証コピー','任意保険証コピー'],
+   ja:'提出する書類',vi:'Giấy tờ nộp kèm',id:'Dokumen yang dilampirkan'}
+ ]},
+
+{k:'一時帰国希望申請書', em:'✈️', sum:['out','back','purpose'],
+ ja:'一時帰国希望申請書', vi:'Đơn xin về nước tạm thời', id:'Permohonan Pulang Sementara',
+ note:{ja:'・原則6ヶ月前までに職長へ相談し、許可をもらってから作成してください。\n・書類は原則3ヶ月前までに提出してください。\n・航空券を取る前に、必ず総務の担当者へ相談してください。\n・一時帰国の費用は自己負担です。\n・帰国する期間によっては、住民税・社会保険料を一括で払っていただく場合があります。\n・申請した帰国日を必ず守り、日本へ戻ってきてください。',
+       vi:'・Về nguyên tắc, hãy trao đổi với tổ trưởng trước 6 tháng và được cho phép rồi mới viết đơn.\n・Nộp giấy tờ trước 3 tháng.\n・Trước khi mua vé máy bay, nhất định phải hỏi người phụ trách bộ phận hành chính.\n・Chi phí về nước tạm thời do bản thân chi trả.\n・Tùy thời gian về nước, có thể phải trả một lần thuế cư trú và bảo hiểm xã hội.\n・Hãy giữ đúng ngày đã xin và quay lại Nhật.',
+       id:'・Pada dasarnya, bicarakan dengan kepala regu 6 bulan sebelumnya dan dapatkan izin dulu.\n・Serahkan dokumen 3 bulan sebelumnya.\n・Sebelum membeli tiket pesawat, wajib bertanya kepada penanggung jawab bagian umum.\n・Biaya pulang sementara ditanggung sendiri.\n・Tergantung lama kepulangan, pajak daerah dan asuransi sosial mungkin harus dibayar sekaligus.\n・Patuhi tanggal yang diajukan dan kembali ke Jepang.'},
+ f:[
+  {k:'out',t:'date',req:1,ja:'帰国日',vi:'Ngày về nước',id:'Tanggal pulang'},
+  {k:'back',t:'date',req:1,ja:'再入国日（日本にもどる日）',vi:'Ngày trở lại Nhật',id:'Tanggal kembali ke Jepang'},
+  {k:'purpose',t:'area',req:1,ja:'帰国目的（脱退一時金の期間も書いてください）',
+   vi:'Mục đích về nước (ghi cả thời gian rút tiền bảo hiểm)',id:'Tujuan pulang (tulis juga masa dana pensiun)'},
+  {k:'taishoku',t:'select',req:1,o:['無','有'],ja:'退職の有無',vi:'Có nghỉ việc không',id:'Apakah berhenti kerja'},
+  {k:'promise',t:'area',req:1,ja:'上司との約束',vi:'Cam kết với cấp trên',id:'Janji dengan atasan'},
+  {k:'talked',t:'check',req:1,ja:'職長に相談して許可をもらいました',
+   vi:'Tôi đã trao đổi và được tổ trưởng cho phép',id:'Saya sudah berkonsultasi dan diizinkan kepala regu'}
+ ]},
+
+{k:'資格取得制度申請書', em:'🎓', sum:['name','fee'], jaOnly:1,
+ ja:'資格取得制度申請書',
+ note:{ja:'・自己負担した場合は領収書を添付してください。\n・汎用性のある免許は貸付となるため、誓約書の添付が必要です。'},
+ f:[
+  {k:'birth',t:'date',ja:'生年月日'},
+  {k:'tel',t:'text',ja:'電話番号'},
+  {k:'name',t:'text',req:1,ja:'資格内容'},
+  {k:'need',t:'area',req:1,ja:'資格取得の必要性'},
+  {k:'place',t:'text',ja:'資格取得場所'},
+  {k:'from',t:'date',ja:'講習期間（開始）'},
+  {k:'till',t:'date',ja:'講習期間（終了）'},
+  {k:'fee',t:'num',req:1,amt:1,ja:'取得費用（円）'},
+  {k:'trans',t:'num',amt:1,ja:'交通費（円）'},
+  {k:'memo',t:'area',ja:'備考'}
+ ]},
+
+{k:'資格試験申込書', em:'📝', sum:['exam','day'], jaOnly:1,
+ ja:'資格試験申込書',
+ note:{ja:'自己負担した場合は領収書を添付してください。'},
+ f:[
+  {k:'birth',t:'date',ja:'生年月日'},
+  {k:'tel',t:'text',ja:'電話番号'},
+  {k:'exam',t:'text',req:1,ja:'試験名'},
+  {k:'day',t:'date',req:1,ja:'試験実施日'},
+  {k:'org',t:'text',ja:'試験実施団体'},
+  {k:'place',t:'text',ja:'試験会場'},
+  {k:'purpose',t:'area',req:1,ja:'受験目的'},
+  {k:'fee',t:'num',amt:1,ja:'受験料（円）'},
+  {k:'trans',t:'num',amt:1,ja:'交通費（円）'},
+  {k:'memo',t:'area',ja:'備考'}
+ ]}
+];
+
+/* =============================================================
+ *  状態
+ * ============================================================= */
+/* データのやり取り先。画面はGoogleの外（GitHub Pages）に置き、ここへ投げる。
+   Cookieを送らない通信なので、Googleに複数アカウントでログインしていても影響を受けない。
+   デプロイをやり直してURLが変わったら API を差し替える。TOKEN は Code.gs の API_TOKEN と必ず同じにする。 */
+var API   = 'https://script.google.com/macros/s/AKfycbzHhCxNy0gyfXFrUusENS4Un3qjdv4cWqlMbIOKP8mMMkJZmCpCObyCDDNiJkjeRbU7/exec';
 var TOKEN = 'kr-20260826-03f9d6e24fbd';
+/* URLの末尾に ?demo=1 を付けたときだけ、架空データのお試し表示になる */
 var DEMO  = (!API) || /[?&]demo=1(?:&|$)/.test(location.search);
-var BOOT = null;
-var ME = null;
-var VIEW = [];
-var CUR = null;
-
-/* === パフォーマンス改善：キャッシュ機能 === */
-var CACHE = {};
-var CACHE_TTL = {
-  'api_inbox': 120000,      // 2分
-  'api_board': 300000,       // 5分
-  'api_dashboard': 300000,   // 5分
-  'api_myList': 120000       // 2分
-};
+var BOOT = null;          // {employees, approvers, config, today}
+var ME = null;            // {name, dept, isApprover, title, tier}
+var VIEW = [];            // 画面スタック
+var CUR = null;           // 表示中フォーム
 
 function $(id){ return document.getElementById(id); }
 function el(h){ var d=document.createElement('div'); d.innerHTML=h; return d.firstElementChild; }
@@ -162,29 +312,9 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
 function toast(m){ var t=$('toast'); t.textContent=m; t.className='on';
   setTimeout(function(){ t.className=''; },2600); }
 
-/* === 改良版：キャッシング付き call() === */
-function call(fn, args, cb, useCache){
-  var cacheKey = fn + JSON.stringify(args);
-  var now = Date.now();
-
-  // キャッシュ確認
-  if(useCache && CACHE[cacheKey] && (now - CACHE[cacheKey].time) < (CACHE_TTL[fn] || 60000)){
-    // キャッシュが有効 → 即座に返す
-    setTimeout(function(){ cb(CACHE[cacheKey].data); }, 0);
-    // バックグラウンドで最新データを取得（ユーザーには見えない）
-    fetchInBackground(fn, args, cacheKey);
-    return;
-  }
-
-  // キャッシュなし、または有効期限切れ → API呼び出し
-  if(DEMO){
-    return setTimeout(function(){ cb(demo(fn,args)); }, 140);
-  }
-
-  fetchInBackground(fn, args, cacheKey);
-}
-
-function fetchInBackground(fn, args, cacheKey){
+function call(fn, args, cb){
+  if(DEMO) return setTimeout(function(){ cb(demo(fn,args)); },140);
+  // Content-Type を text/plain にすると事前確認の通信が発生せず、そのまま通る
   fetch(API, {
     method:'POST',
     headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -193,15 +323,12 @@ function fetchInBackground(fn, args, cacheKey){
   .then(function(r){ return r.json(); })
   .then(function(j){
     if(!j || !j.ok){ toast((j&&j.msg)||'通信エラー'); return; }
-    // キャッシュに保存
-    CACHE[cacheKey] = {
-      data: j.data,
-      time: Date.now()
-    };
+    cb(j.data);
   })
   .catch(function(e){ toast('つながりませんでした。電波を確かめてもう一度ためしてください'); });
 }
 
+/* お試し表示のとき、最初の1回だけサンプルの申請を入れておく（画面の見え方を確かめるため） */
 function seedDemo(){
   if(localStorage.getItem('kr_demo')!==null) return;
   function ago(d){ var t=new Date(); t.setDate(t.getDate()-d); return t.toISOString(); }
@@ -229,6 +356,7 @@ function seedDemo(){
   localStorage.setItem('kr_demo',JSON.stringify(s));
 }
 
+/* ---------- 起動 ---------- */
 window.onload = function(){
   if(DEMO){ $('demoBar').style.display='block'; seedDemo(); }
   $('app').innerHTML = '<p style="text-align:center;padding:40px 0;color:#6a736c">'+T(UI.loading)+'</p>';
@@ -257,6 +385,7 @@ function render(){
 }
 function put(h){ $('app').appendChild(typeof h==='string'?el('<div>'+h+'</div>'):h); }
 
+/* ---------- 言語ボタン ---------- */
 function langBar(){
   var d = el('<div class="langs"></div>');
   LANGS.forEach(function(L){
@@ -267,100 +396,103 @@ function langBar(){
   return d;
 }
 
-/* ==================== ログイン ==================== */
+/* ---------- 1. だれ？ ---------- */
 function vLogin(){
   put(langBar());
-  put('<h2>あなたは誰ですか？</h2>');
-  var search = el('<input class="search" type="text" placeholder="名前をさがす">');
-  put(search);
-
-  var list = el('<div class="names" id="nameList"></div>');
-  put(list);
-
-  if(BOOT && BOOT.employees){
-    var emp = BOOT.employees;
-    var filtered = emp;
-
-    search.oninput = function(){
-      var q = search.value.toLowerCase();
-      filtered = q ? emp.filter(function(e){ return e.name.toLowerCase().includes(q); }) : emp;
-      renderNames();
-    };
-
-    function renderNames(){
-      list.innerHTML = '';
-      filtered.forEach(function(e){
-        var b = el('<button>'+esc(e.name)+'<span class="sub">'+esc(e.dept)+'</span></button>');
-        b.onclick=function(){ selectEmployee(e); };
-        list.appendChild(b);
-      });
-    }
-    renderNames();
-  }
-}
-
-function selectEmployee(emp){
-  ME = {name:emp.name, dept:emp.dept, isApprover:false, title:''};
-  localStorage.setItem('kr_me', JSON.stringify(ME));
-  go('pin');
-}
-
-function vPin(){
-  put('<h2>'+ME.name+'</h2>');
-  put('<p style="font-size:14px;color:#6a736c">あなたの社員番号を入れてください</p>');
-
-  var display = el('<div class="dots" id="pinDisplay">0</div>');
-  var buf = '';
-  put(display);
-
-  var btnDiv = el('<div class="pin"></div>');
-  for(var i=1; i<=9; i++){
-    var b = el('<button>'+i+'</button>');
-    b.onclick = (function(n){
-      return function(){
-        buf += n; update();
+  waitBanner();          // 誰の所で止まっているかを、ログインする前から全員に見せる
+  put('<h2>'+T(UI.who)+'</h2>');
+  var inp = el('<input class="search" placeholder="'+T(UI.search)+'">');
+  put(inp);
+  var box = el('<div class="names"></div>');
+  put(box);
+  var aprNames = (BOOT.approvers||[]).map(function(a){ return a.name.replace(/\s/g,''); });
+  function draw(){
+    var q = inp.value.replace(/\s/g,'');
+    box.innerHTML='';
+    BOOT.employees.filter(function(e){
+      return !q || (e.name+e.roman+e.dept).replace(/\s/g,'').toLowerCase().indexOf(q.toLowerCase())>=0;
+    }).slice(0,120).forEach(function(e){
+      var isAp = aprNames.indexOf(e.name.replace(/\s/g,''))>=0;
+      var b = el('<button'+(isAp?' class="ap"':'')+'>'+esc(e.name)+
+        '<span style="display:block;font-size:11px;font-weight:400;color:#6a736c">'+esc(e.dept)+'</span></button>');
+      b.onclick=function(){
+        if(isAp) go('pin',e.name);
+        else { ME={name:e.name,dept:e.dept,isApprover:false,title:'',tier:''};
+               localStorage.setItem('kr_me',JSON.stringify(ME)); reset('home'); }
       };
-    })(i);
-    btnDiv.appendChild(b);
-  }
-
-  var bBack = el('<button>←</button>');
-  bBack.onclick = function(){ buf = buf.slice(0,-1); update(); };
-  btnDiv.appendChild(bBack);
-
-  var b0 = el('<button>0</button>');
-  b0.onclick = function(){ buf += '0'; update(); };
-  btnDiv.appendChild(b0);
-
-  var bOk = el('<button>OK</button>');
-  bOk.style.gridColumn = 'span 1';
-  bOk.onclick = function(){
-    call('api_loginApprover',[ME.name,buf],function(r){
-      if(r && r.isApprover){
-        ME = r;
-        localStorage.setItem('kr_me',JSON.stringify(ME));
-        go('home');
-      }else{
-        toast('PINが違うか、承認者ではありません');
-        buf=''; update();
-      }
+      box.appendChild(b);
     });
-  };
-  btnDiv.appendChild(bOk);
-
-  put(btnDiv);
-
-  function update(){
-    display.textContent = buf ? '●'.repeat(buf.length) : '0';
+    if(!box.children.length) box.innerHTML='<p style="color:#6a736c">'+T(UI.none)+'</p>';
   }
+  inp.oninput=draw; draw();
 }
 
+/* スタート画面の滞留アラート。中身は出さず「誰に何件か」だけ。 */
+function waitBanner(){
+  var box = el('<div id="wb"></div>'); put(box);
+  call('api_board',[],function(d){
+    if(!d || d.off) return;
+    var w = (d.rank||[]).filter(function(x){ return x.count>0; });
+    if(!w.length){
+      box.innerHTML='<div style="background:#eaf3ea;border:1px solid #b9d6bd;border-left:6px solid #2f7a3d;'+
+        'border-radius:11px;padding:12px 14px;margin:0 0 14px;color:#245c2c;font-size:14px">✅ '+T(UI.waitNone)+'</div>';
+      return;
+    }
+    var hot = w.some(function(x){ return x.max>=3; });
+    var bg  = hot?'#fdecea':'#fff8e6', bd = hot?'#f3b6ae':'#f0d79a';
+    var bar = hot?'#c0392b':'#e08a00', fg = hot?'#8e2b20':'#6b5300';
+    var h='<div style="background:'+bg+';border:1px solid '+bd+';border-left:6px solid '+bar+';'+
+      'border-radius:11px;padding:13px 15px;margin:0 0 14px;color:'+fg+'">'+
+      '<div style="font-weight:700;font-size:16px;margin-bottom:8px">⏰ '+T(UI.waitHead)+'</div>';
+    w.forEach(function(x){
+      var mark = x.max>=5?'🚨':(x.max>=3?'⚠':'');
+      h+='<div style="font-size:16px;font-weight:700;margin:5px 0;line-height:1.5">'+mark+esc(x.name)+(lang==='ja'?' さん':'')+
+         '　<span style="font-weight:400;font-size:14px">'+x.count+T(UI.cases)+
+         '（'+T(UI.longest)+' '+x.max+T(UI.days)+'）</span></div>';
+    });
+    h+='<div style="font-size:13px;line-height:1.6;margin-top:9px;opacity:.9">'+T(UI.waitCall)+'</div></div>';
+    box.innerHTML=h;
+  });
+}
+
+/* ---------- 2. PIN ---------- */
+function vPin(name){
+  put('<h2>'+esc(name)+'</h2>');
+  put('<p>'+T(UI.pin)+'</p>');
+  var dots = el('<div class="dots"></div>'); put(dots);
+  var buf='';
+  function show(){ dots.textContent = buf; }   // 社員番号は桁数がちがうのでそのまま出す
+  var pad = el('<div class="pin"></div>');
+  ['1','2','3','4','5','6','7','8','9','←','0','OK'].forEach(function(c){
+    var b = el('<button>'+c+'</button>');
+    b.onclick=function(){
+      if(c==='←'){ buf=buf.slice(0,-1); show(); return; }
+      if(c==='OK'){
+        call('api_loginApprover',[name,buf],function(r){
+          if(r.ok){ ME={name:r.name,dept:'',isApprover:true,title:r.title,tier:r.tier};
+            localStorage.setItem('kr_me',JSON.stringify(ME)); reset('home'); }
+          else { toast(r.msg); buf=''; show(); }
+        });
+        return;
+      }
+      if(buf.length<8){ buf+=c; show(); }
+    };
+    pad.appendChild(b);
+  });
+  put(pad);
+  put('<p class="hint">承認者7名だけ、他の人が勝手に承認できないように番号を入れます。<br>'+
+      '初期値は社員番号です。変えたいときは スプレッドシートの「承認者」シートのPIN列を直してください。</p>');
+}
+
+/* ---------- 3. ホーム ---------- */
+/* 設定「申請ボタンを出さない人」に名前があれば［申請する］を出さない（承認だけする人） */
 function noSubmit(name){
-  if(!BOOT || !BOOT.config) return false;
-  return (BOOT.config.noSubmit||[]).indexOf(name) >= 0;
+  var v=(BOOT.config||{})['申請ボタンを出さない人']||'';
+  var k=String(name||'').replace(/s/g,'');
+  return String(v).split(',').map(function(x){return x.replace(/s/g,'');})
+    .filter(function(x){return x;}).indexOf(k)>=0;
 }
 
-/* ==================== ホーム ==================== */
 function vHome(){
   put(langBar());
   if(ME.isApprover) put('<div id="alertBox"></div>');
@@ -379,10 +511,10 @@ function vHome(){
     var b3 = el('<button class="big"><span class="em">✅</span><span>'+T(UI.inbox)+
       '<span class="sub">'+T(UI.inboxS)+'</span></span><span class="bd" id="bdg">…</span></button>');
     b3.onclick=function(){ go('inbox'); }; put(b3);
-    // キャッシュを使用 → 即座に表示（バックグラウンドで更新）
     call('api_inbox',[ME.name],function(r){
       var w=(r.waiting||[]), e=$('bdg');
       if(e){ if(w.length) e.textContent=w.length; else e.style.display='none'; }
+      // 3営業日を超えて自分が止めているものがあれば、赤い帯で知らせる
       var late=w.filter(function(x){return x.stayDays>=3;});
       var box=$('alertBox');
       if(box && late.length){
@@ -392,9 +524,10 @@ function vHome(){
           '<button class="btn bad" style="margin-top:10px">'+T(UI.bannerGo)+'</button></div>';
         box.querySelector('button').onclick=function(){ go('inbox'); };
       }
-    }, true);  // ← useCache=true でキャッシュ機能を有効化
+    });
   }
 
+  // 「みんなの承認状況」は全員が見られる（中身は見えない）
   var b5 = el('<button class="big"><span class="em">👀</span><span>'+T(UI.board)+
     '<span class="sub">'+T(UI.boardS)+'</span></span></button>');
   b5.onclick=function(){ go('board'); }; put(b5);
@@ -418,29 +551,7 @@ function vHome(){
   }
 }
 
-/* ==================== 受信箱 ==================== */
-function vInbox(){
-  put('<h2>✅ '+T(UI.inbox)+'</h2>');
-  var box=el('<div>'+T(UI.loading)+'</div>'); put(box);
-  call('api_inbox',[ME.name],function(r){
-    box.innerHTML='';
-    if(!r || !r.waiting || !r.waiting.length){
-      box.appendChild(el('<div class="card">すべて確認済みです 🎉</div>'));
-      return;
-    }
-    r.waiting.forEach(function(x){
-      var item=el('<div class="item '+
-        (x.stayDays>=3?'b':x.stayDays>=1?'w':'o')+'">'+
-        '<div class="h">'+esc(x.type)+'</div>'+
-        '<div class="m">'+esc(x.applicant)+' - '+esc(x.summary)+'<br>'+
-        x.stayDays+'日待機</div></div>');
-      item.onclick=function(){ go('detail',x); };
-      box.appendChild(item);
-    });
-  }, true);  // ← useCache=true
-}
-
-/* ==================== ボード（みんなの承認状況） ==================== */
+/* ---- みんなの承認状況（全員が見られる。件数と日数だけ） ---- */
 function vBoard(){
   put('<h2>👀 '+T(UI.board)+'</h2>');
   var box=el('<div>'+T(UI.loading)+'</div>'); put(box);
@@ -448,37 +559,385 @@ function vBoard(){
     box.innerHTML='';
     if(!d || d.off){ box.innerHTML='<div class="card">'+T(UI.none)+'</div>'; return; }
     if(!d.total){ box.appendChild(el('<div class="card">'+T(UI.boardNone)+' 🎉</div>')); }
-    if(d.rank){
-      d.rank.forEach(function(x){
-        var cls = x.max>=5?'b' : x.max>=3?'w' : (x.count?'':'o');
-        box.appendChild(el('<div class="item '+cls+'">'+
-          '<div class="h">'+esc(x.name)+'</div>'+
-          '<div class="m">待機: '+x.count+'件　最長: '+x.max+'日</div></div>'));
-      });
-    }
-  }, true);  // ← useCache=true
+    d.rank.forEach(function(x){
+      var cls = x.max>=5?'b' : x.max>=3?'w' : (x.count?'':'o');
+      box.appendChild(el('<div class="item '+cls+'">'+
+        '<div class="h">'+esc(x.name)+
+          (x.count?'　<span class="tag '+cls+'">'+x.count+T(UI.cases)+'</span>':'　<span class="tag o">0</span>')+'</div>'+
+        '<div class="m">'+esc(x.title||'')+
+          (x.count?'　／　'+T(UI.longest)+' '+x.max+T(UI.days):'')+
+          (x.over5?'　🚨5営業日超 '+x.over5:(x.over3?'　⚠3営業日超 '+x.over3:''))+'</div></div>'));
+    });
+    box.appendChild(el('<p class="hint">'+T(UI.boardNote)+'<br>'+
+      d.escDays+T(UI.days)+'で 代表（見本　社長）へ自動で付け替わります。</p>'));
+  });
 }
 
-/* ==================== ダッシュボード ==================== */
+/* ---------- 4. 種類えらび ---------- */
+function vTypes(){
+  put('<h2>'+T(UI.pick)+'</h2>');
+  var g = el('<div class="grid"></div>');
+  FORMS.forEach(function(F){
+    if(F.jaOnly && lang!=='ja') return;
+    var sub = (lang!=='ja' && F[lang]) ? '<span class="sub">'+esc(F.ja)+'</span>' : '';
+    var b = el('<button><span class="em">'+F.em+'</span><span>'+esc(T(F))+'</span>'+sub+'</button>');
+    b.onclick=function(){ go('form',F.k); };
+    g.appendChild(b);
+  });
+  // ビザ・在留資格は Googleフォームで運用（設定シートの ビザ申請フォームURL が空ならタイルは出ない）
+  var vurl = (BOOT.config||{})['ビザ申請フォームURL'];
+  if(vurl){
+    var vb = el('<button style="border-color:#2f7a3d;background:#eaf3ea">'+
+      '<span class="em">🛂</span><span>'+T(UI.visa)+'</span>'+
+      '<span class="sub">'+T(UI.visaS)+'</span></button>');
+    vb.onclick=function(){ window.open(vurl,'_blank'); };
+    g.appendChild(vb);
+  }
+  put(g);
+  if(vurl) put('<div class="note">'+T(UI.visaNote)+'</div>');
+  if(lang!=='ja') put('<p class="hint">日本語だけの用紙は「日本語」に切り替えると出ます。</p>');
+}
+
+/* ---------- 5. フォーム ---------- */
+function vForm(key){
+  var F = FORMS.filter(function(x){return x.k===key;})[0];
+  CUR = F;
+  put('<h2>'+F.em+' '+esc(T(F))+'</h2>');
+  if(lang!=='ja' && F[lang]) put('<p class="hint">'+esc(F.ja)+'</p>');
+  if(F.note) put('<div class="note">'+esc(T(F.note))+'</div>');
+
+  var wrapEl = el('<div></div>');
+  F.f.forEach(function(fl){
+    var id='f_'+fl.k;
+    var lab = '<label for="'+id+'">'+esc(T(fl))+
+      (fl.req?'<span class="req">※必須</span>':'')+
+      ((lang!=='ja'&&fl.ja&&T(fl)!==fl.ja)?'<span class="sub">'+esc(fl.ja)+'</span>':'')+'</label>';
+    var body='';
+    if(fl.t==='select'){
+      var loc = (fl.oL && fl.oL[lang]) ? fl.oL[lang] : null;
+      body='<select id="'+id+'"><option value=""></option>'+
+        fl.o.map(function(o,i){
+          var show = loc ? (loc[i]+'（'+o+'）') : o;      // 現地語（日本語）で併記
+          return '<option value="'+esc(o)+'">'+esc(show)+'</option>';
+        }).join('')+'</select>';
+    } else if(fl.t==='area'){
+      body='<textarea id="'+id+'"></textarea>';
+    } else if(fl.t==='checks'){
+      body=fl.o.map(function(o,i){
+        return '<label class="chk"><input type="checkbox" id="'+id+'_'+i+'" value="'+esc(o)+'"><span>'+esc(o)+'</span></label>';
+      }).join('');
+    } else if(fl.t==='check'){
+      body='<label class="chk"><input type="checkbox" id="'+id+'"><span>'+esc(T(fl))+'</span></label>';
+    } else {
+      var ty = fl.t==='date'?'date' : fl.t==='datetime'?'datetime-local' :
+               fl.t==='time'?'time' : fl.t==='num'?'number' : 'text';
+      body='<input type="'+ty+'" id="'+id+'"'+(fl.ph?' placeholder="'+esc(fl.ph)+'"':'')+
+           (fl.t==='num'?' inputmode="decimal"':'')+'>';
+    }
+    wrapEl.appendChild(el('<div>'+(fl.t==='check'?'':lab)+body+'</div>'));
+  });
+  put(wrapEl);
+
+  var btn = el('<button class="btn">'+T(UI.send)+'</button>');
+  btn.onclick=function(){ submit(F,btn); };
+  put(btn);
+}
+
+function collect(F){
+  var out=[], amt=0, miss=null, val={};
+  // 先に全部の値を読む（reqIf で他の項目を見るため）
+  F.f.forEach(function(fl){
+    var id='f_'+fl.k;
+    if(fl.t==='checks'){
+      var a=[]; fl.o.forEach(function(o,i){ var c=$(id+'_'+i); if(c&&c.checked) a.push(o); });
+      val[fl.k]=a.join(' / '); val['__n_'+fl.k]=a.length;
+    } else if(fl.t==='check'){
+      var c2=$(id); val[fl.k]=(c2&&c2.checked)?'はい':'';
+    } else {
+      var e=$(id); val[fl.k]=e?String(e.value||'').trim():'';
+    }
+  });
+  F.f.forEach(function(fl){
+    var v=val[fl.k];
+    var need = fl.req || (fl.reqIf && val[fl.reqIf.k]===fl.reqIf.v);
+    if(need && !miss){
+      if(fl.t==='checks'){ if(val['__n_'+fl.k] < fl.o.length) miss=T(fl); }
+      else if(!v) miss=T(fl);
+    }
+    if(fl.amt) amt += Number(String(v).replace(/[^0-9.\-]/g,''))||0;
+    out.push({k:fl.k, label:fl.ja||T(fl), value:v});
+  });
+  return {fields:out, amount:amt, miss:miss};
+}
+
+function submit(F,btn){
+  var c = collect(F);
+  if(c.miss){ toast('「'+c.miss+'」'+T(UI.need)); return; }
+  var map={}; c.fields.forEach(function(x){ map[x.k]=x.value; });
+  var summary = (F.sum||[]).map(function(k){return map[k];}).filter(Boolean).join(' / ');
+  btn.disabled=true; btn.textContent='…';
+  call('api_submit',[{empName:ME.name, type:F.k, summary:summary,
+                      amount:c.amount, fields:c.fields}], function(r){
+    btn.disabled=false; btn.textContent=T(UI.send);
+    if(!r||!r.ok){ toast((r&&r.msg)||'送信できませんでした'); return; }
+    /* 承認者が「なし」の人（執行役など）は、出した時点で受付完了 */
+    toast(r.done ? '出しました（'+r.id+'）承認は不要です。記録に残りました'
+                 : T(UI.sent)+'（'+r.id+'）→ '+r.boss+' さんへ');
+    reset('mine');
+  });
+}
+
+/* ---------- 6. 自分の申請 ---------- */
+function stateInfo(r){
+  if(r.state==='承認待ち') return {cls:r.stayDays>=5?'b':r.stayDays>=3?'w':'', txt:T(UI.waitB)+'：'+r.boss};
+  if(r.state==='2段目の承認待ち') return {cls:r.stayDays>=5?'b':r.stayDays>=3?'w':'', txt:T(UI.waitE)+'：'+r.exec};
+  if(r.state==='承認済み')     return {cls:'o', txt:T(UI.done)};
+  if(r.state==='差戻し')       return {cls:'b', txt:T(UI.back2)};
+  return {cls:'', txt:r.state};
+}
+
+function listItem(r,onTap){
+  var s = stateInfo(r);
+  var days = (r.stayDays? ' <span class="tag '+(r.stayDays>=5?'b':r.stayDays>=3?'w':'')+'">'+
+              r.stayDays+T(UI.days)+'</span>' : '');
+  var d = el('<div class="item '+s.cls+'">'+
+    '<div class="h">'+esc(r.type)+'</div>'+
+    '<div class="m">'+esc(r.summary||'')+'</div>'+
+    '<div class="m" style="margin-top:6px"><span class="tag '+s.cls+'">'+esc(s.txt)+'</span>'+days+'</div>'+
+    '<div class="m">'+esc(r.applicant)+'（'+esc(r.dept)+'）　'+esc(r.id)+'　'+esc(r.submitted)+'</div></div>');
+  if(onTap) d.onclick=function(){ onTap(r); };
+  return d;
+}
+
+function vMine(){
+  put('<h2>📋 '+T(UI.mine)+'</h2>');
+  var box=el('<div>'+T(UI.loading)+'</div>'); put(box);
+  call('api_myList',[ME.name],function(list){
+    box.innerHTML='';
+    if(!list.length){ box.innerHTML='<div class="card">'+T(UI.none)+'</div>'; return; }
+    list.reverse().forEach(function(r){ box.appendChild(listItem(r,function(x){go('detail',x);})); });
+  });
+}
+
+/* ---------- 7. 承認する ---------- */
+function vInbox(){
+  put('<h2>✅ '+T(UI.inbox)+'</h2>');
+  var box=el('<div>'+T(UI.loading)+'</div>'); put(box);
+  call('api_inbox',[ME.name],function(r){
+    box.innerHTML='';
+    var w=r.waiting||[];
+    if(!w.length) box.appendChild(el('<div class="card">'+T(UI.none)+' 🎉</div>'));
+    w.sort(function(a,b){return b.stayDays-a.stayDays;});
+    w.forEach(function(x){ box.appendChild(listItem(x,function(y){go('detail',y);})); });
+    var rel=(r.related||[]).filter(function(x){return x.state==='承認済み'||x.state==='差戻し';});
+    if(rel.length){
+      box.appendChild(el('<h2 style="font-size:17px;color:#6a736c">処理済み（直近）</h2>'));
+      rel.reverse().slice(0,15).forEach(function(x){
+        box.appendChild(listItem(x,function(y){go('detail',y);}));
+      });
+    }
+  });
+}
+
+/* ---------- 8. 詳細・承認操作 ---------- */
+function vDetail(r){
+  put('<h2>'+esc(r.type)+'</h2>');
+  var s=stateInfo(r);
+  put('<div class="card"><span class="tag '+s.cls+'">'+esc(s.txt)+'</span>'+
+      (r.stayDays?'<span class="tag '+(r.stayDays>=5?'b':'w')+'">'+r.stayDays+T(UI.days)+'</span>':'')+
+      '<div class="kv"><b>申請番号</b><span>'+esc(r.id)+'</span></div>'+
+      '<div class="kv"><b>申請者</b><span>'+esc(r.applicant)+'（'+esc(r.dept)+'／'+esc(r.site)+'）</span></div>'+
+      '<div class="kv"><b>申請日時</b><span>'+esc(r.submitted)+'</span></div>'+
+      /* 承認者が空の申請は「承認不要」で完了しているので、そう見せる */
+      '<div class="kv"><b>承認者</b><span>'+(r.boss
+          ? esc(r.boss)+(r.bossAt?'　'+esc(r.bossAt):'　未')
+          : '承認不要'+(r.bossAt?'　'+esc(r.bossAt):''))+
+        (r.bossComment?'\n'+esc(r.bossComment):'')+'</span></div>'+
+      (r.exec?'<div class="kv"><b>2段目</b><span>'+esc(r.exec)+(r.execAt?'　'+esc(r.execAt):'　未')+
+        (r.execComment?'\n'+esc(r.execComment):'')+'</span></div>':'')+
+      (Number(r.amount)?'<div class="kv"><b>金額</b><span>'+Number(r.amount).toLocaleString()+' 円</span></div>':'')+
+      '</div>');
+
+  var c = el('<div class="card"></div>');
+  (r.fields||[]).forEach(function(f){
+    if(!f.value) return;
+    c.appendChild(el('<div class="kv"><b>'+esc(f.label)+'</b><span>'+esc(f.value)+'</span></div>'));
+  });
+  if(c.children.length) put(c);
+
+  var canAct = ME.isApprover &&
+    ((r.state==='承認待ち' && (eqn(r.boss)||eqn(r.exec)||ME.tier==='代表')) ||
+     (r.state==='2段目の承認待ち' && (eqn(r.exec)||ME.tier==='代表')));
+  if(!canAct) return;
+
+  put('<label>'+T(UI.cm)+'</label>');
+  var cm = el('<textarea id="cmt"></textarea>'); put(cm);
+
+  var ok = el('<button class="btn">✅ '+T(UI.ok)+'</button>');
+  ok.onclick=function(){ decide(r,'approve',cm.value,ok); };
+  put(ok);
+  var ng = el('<button class="btn bad">↩ '+T(UI.ng)+'</button>');
+  ng.onclick=function(){
+    if(!cm.value.trim()){ toast('差戻しの理由を書いてください'); cm.focus(); return; }
+    decide(r,'reject',cm.value,ng);
+  };
+  put(ng);
+}
+function eqn(a){ return String(a||'').replace(/\s/g,'')===String(ME.name||'').replace(/\s/g,''); }
+
+function decide(r,act,cm,btn){
+  btn.disabled=true; var old=btn.textContent; btn.textContent='…';
+  call('api_decide',[r.id,ME.name,act,cm],function(res){
+    btn.disabled=false; btn.textContent=old;
+    if(!res||!res.ok){ toast((res&&res.msg)||'できませんでした'); return; }
+    toast(act==='approve'?('承認しました → '+res.state):'差戻しました');
+    reset('inbox');
+  });
+}
+
+/* ---------- 9. 滞留ダッシュボード ---------- */
 function vDash(){
   put('<h2>📊 '+T(UI.dash)+'</h2>');
   var box=el('<div>'+T(UI.loading)+'</div>'); put(box);
   call('api_dashboard',[],function(d){
-    box.innerHTML='<div class="stat">'+
-      '<div><b>'+d.total+'</b><span>全体件数</span></div>'+
-      '<div><b>'+d.waiting+'</b><span>待機中</span></div>'+
-      '</div>';
-  }, true);  // ← useCache=true
+    box.innerHTML='';
+    var s=d.stats;
+    box.appendChild(el('<div class="stat">'+
+      '<div><b>'+s.openCount+'</b><span>未処理</span></div>'+
+      '<div><b style="color:#e08a00">'+s.over3+'</b><span>3営業日超</span></div>'+
+      '<div><b style="color:#c0392b">'+s.over5+'</b><span>5営業日超</span></div>'+
+      '<div><b>'+s.avgLead+'</b><span>今月の平均リードタイム（営業日）</span></div></div>'));
+
+    box.appendChild(el('<h2 style="font-size:18px">誰の手元で止まっているか</h2>'));
+    if(!d.rank.length) box.appendChild(el('<div class="card">滞留なし 🎉</div>'));
+    d.rank.forEach(function(x){
+      box.appendChild(el('<div class="item '+(x.max>=5?'b':x.max>=3?'w':'')+'">'+
+        '<div class="h">'+esc(x.name)+'　'+x.count+'件</div>'+
+        '<div class="m">最長 '+x.max+' 営業日　／　平均 '+x.avg+' 営業日'+
+        (x.over?'　⚠ 3営業日超 '+x.over+'件':'')+'</div></div>'));
+    });
+
+    box.appendChild(el('<h2 style="font-size:18px">止まっている申請</h2>'));
+    if(!d.open.length) box.appendChild(el('<div class="card">'+T(UI.none)+'</div>'));
+    d.open.forEach(function(r){ box.appendChild(listItem(r,function(x){go('detail',x);})); });
+  });
 }
 
-/* 他のビュー関数（省略：mine, types, form, detail等は元のコードと同様） */
-function vTypes(){ put('<p>タイプ選択</p>'); }
-function vForm(){ put('<p>フォーム</p>'); }
-function vMine(){ put('<p>自分の申請</p>'); }
-function vDetail(){ put('<p>詳細</p>'); }
+/* =============================================================
+ *  デモ用（GASに載せると使われません）
+ * ============================================================= */
+/* お試し表示用の架空の名簿。この画面はインターネットに公開されるので、
+   本物の氏名・社員番号は一切書かない。本番の名簿は「社員」シートから通信で受け取る。 */
+var DEMO_EMP = [
+  {no:'',name:'見本　社長',roman:'',dept:'経営',site:'熊本',boss:'見本　専務',lang:'日本語'},
+  {no:'',name:'見本　専務',roman:'',dept:'経営',site:'熊本',boss:'見本　社長',lang:'日本語'},
+  {no:'',name:'見本　生産執行役',roman:'',dept:'生産',site:'熊本',boss:'見本　社長',lang:'日本語'},
+  {no:'',name:'見本　センター執行役',roman:'',dept:'センター',site:'熊本',boss:'見本　社長',lang:'日本語'},
+  {no:'',name:'見本　広島所長',roman:'',dept:'広島',site:'広島',boss:'見本　社長',lang:'日本語'},
+  {no:'',name:'見本　経理執行役',roman:'',dept:'総務・経理',site:'熊本',boss:'見本　社長',lang:'日本語'},
+  {no:'',name:'見本　営業執行役',roman:'',dept:'営業',site:'熊本',boss:'見本　社長',lang:'日本語'},
+  {no:'',name:'見本　生産社員',roman:'',dept:'生産',site:'熊本',boss:'見本　生産執行役',lang:'日本語'},
+  {no:'',name:'見本　センター社員',roman:'',dept:'センター',site:'熊本',boss:'見本　センター執行役',lang:'日本語'},
+  {no:'',name:'MIHON A',roman:'MIHON A',dept:'生産',site:'熊本',boss:'見本　生産執行役',lang:'ベトナム語'},
+  {no:'',name:'MIHON B',roman:'MIHON B',dept:'生産',site:'熊本',boss:'見本　生産執行役',lang:'インドネシア語'}
+];
+var DEMO_APR = [
+  {name:'見本　社長',title:'代表取締役',depts:'全社',tier:'代表',mail:''},
+  {name:'見本　専務',title:'専務取締役',depts:'全社',tier:'役員',mail:''},
+  {name:'見本　センター執行役',title:'センター執行役',depts:'センター',tier:'上司',mail:''},
+  {name:'見本　営業執行役',title:'営業(MD部)執行役',depts:'営業',tier:'上司',mail:''},
+  {name:'見本　広島所長',title:'東広島所長',depts:'広島',tier:'上司',mail:''},
+  {name:'見本　生産執行役',title:'生産執行役',depts:'生産',tier:'上司',mail:''},
+  {name:'見本　経理執行役',title:'経営管理部執行役',depts:'総務・経理',tier:'上司',mail:''}
+];
+function dstore(){ try{ return JSON.parse(localStorage.getItem('kr_demo')||'[]'); }catch(e){ return []; } }
+function dsave(a){ localStorage.setItem('kr_demo',JSON.stringify(a)); }
+function dnorm(s){ return String(s||'').replace(/\s/g,''); }
+function ddays(iso){ var a=new Date(iso),b=new Date(),n=0; a.setHours(0,0,0,0); b.setHours(0,0,0,0);
+  while(a<b){ a.setDate(a.getDate()+1); var w=a.getDay(); if(w!==0&&w!==6) n++; } return n; }
 
-function demo(fn, args){
-  return {ok:true, data:{waiting:[],total:0,rank:[],count:0,max:0}};
+function demo(fn,args){
+  if(fn==='api_bootstrap') return {employees:DEMO_EMP,approvers:DEMO_APR,
+    config:{'ビザ申請フォームURL':'https://docs.google.com/forms/d/e/1FAIpQLSdwBANu62SvVK9u0TTrSHpZw3whRkSeF39Sof0cIQf6kI8ElQ/viewform',
+            '申請ボタンを出さない人':'見本　社長,見本　専務'},today:''};
+  if(fn==='api_loginApprover'){
+    // お試し用の架空PIN。本物の社員番号は「承認者」シートにあり、照合はサーバー側でやる
+    var pins={'見本　社長':'1','見本　専務':'2','見本　センター執行役':'3','見本　営業執行役':'4',
+              '見本　広島所長':'5','見本　生産執行役':'6','見本　経理執行役':'7'};
+    var a=DEMO_APR.filter(function(x){return dnorm(x.name)===dnorm(args[0]);})[0];
+    if(!a) return {ok:false,msg:'承認者ではありません'};
+    if(String(args[1])!==pins[a.name]) return {ok:false,msg:'PINが違います（デモは'+pins[a.name]+'）'};
+    return {ok:true,name:a.name,title:a.title,depts:a.depts,tier:a.tier};
+  }
+  if(fn==='api_submit'){
+    var p=args[0], all=dstore();
+    var e=DEMO_EMP.filter(function(x){return dnorm(x.name)===dnorm(p.empName);})[0]||{dept:'',site:'',no:'',boss:'見本　専務'};
+    var exec = (p.type==='一時帰国希望申請書'||Number(p.amount)>=100000)
+      ? '見本　社長' : '見本　専務';
+    var r={id:'D-'+('000'+(all.length+1)).slice(-4), submitted:new Date().toISOString().slice(0,16).replace('T',' '),
+      _at:new Date().toISOString(), type:p.type, applicant:p.empName, empNo:e.no, dept:e.dept, site:e.site,
+      boss:e.boss, exec:'', state:'承認待ち', bossAt:'', bossComment:'', execAt:'', execComment:'',
+      summary:p.summary, amount:p.amount, fields:p.fields};
+    all.push(r); dsave(all);
+    return {ok:true,id:r.id,boss:r.boss,exec:r.exec};
+  }
+  var all=dstore().map(function(r){
+    r.stayDays=(r.state==='承認待ち'||r.state==='2段目の承認待ち')?ddays(r._bossAt||r._at):0;
+    r.leadDays=0; return r;
+  });
+  if(fn==='api_myList') return all.filter(function(r){return dnorm(r.applicant)===dnorm(args[0]);});
+  if(fn==='api_inbox'){
+    var k=dnorm(args[0]);
+    return {waiting: all.filter(function(r){
+        return (r.state==='承認待ち'&&dnorm(r.boss)===k)||(r.state==='2段目の承認待ち'&&dnorm(r.exec)===k);}),
+      related: all.filter(function(r){ return dnorm(r.boss)===k||dnorm(r.exec)===k; })};
+  }
+  if(fn==='api_decide'){
+    var raw=dstore(), t=null;
+    raw.forEach(function(r){ if(r.id===args[0]) t=r; });
+    if(!t) return {ok:false,msg:'見つかりません'};
+    // 本番のCode.gsと同じ判定：承認者本人か、2段目の人か、代表だけが押せる
+    var kk=dnorm(args[1]);
+    if(kk!==dnorm(t.boss) && kk!==dnorm(t.exec) && kk!==dnorm('見本　社長'))
+      return {ok:false,msg:'この申請の承認者ではありません'};
+    var now=new Date().toISOString();
+    if(args[2]==='reject'){ t.state='差戻し'; t.bossComment='差戻し: '+(args[3]||''); }
+    else if(t.state==='承認待ち'){
+      t.bossAt=now.slice(0,16).replace('T',' '); t._bossAt=now; t.bossComment=args[3]||'';
+      if(!t.exec || dnorm(t.exec)===dnorm(args[1])){ t.state='承認済み'; t.execAt=t.bossAt; }
+      else t.state='2段目の承認待ち';
+    } else if(t.state==='2段目の承認待ち'){
+      t.state='承認済み'; t.execAt=now.slice(0,16).replace('T',' '); t.execComment=args[3]||'';
+    }
+    dsave(raw);
+    return {ok:true,state:t.state};
+  }
+  if(fn==='api_board'){
+    var op=all.filter(function(r){return r.state==='承認待ち'||r.state==='2段目の承認待ち';});
+    var bb={};
+    DEMO_APR.forEach(function(a){ bb[a.name]={name:a.name,title:a.title,count:0,max:0,over3:0,over5:0}; });
+    op.forEach(function(r){ var w=(r.state==='承認待ち')?r.boss:r.exec;
+      bb[w]=bb[w]||{name:w,title:'',count:0,max:0,over3:0,over5:0};
+      bb[w].count++; bb[w].max=Math.max(bb[w].max,r.stayDays);
+      if(r.stayDays>=3) bb[w].over3++; if(r.stayDays>=5) bb[w].over5++; });
+    return {rank:Object.keys(bb).map(function(k){return bb[k];})
+        .sort(function(a,b){return (b.max-a.max)||(b.count-a.count);}),
+      total:op.length, over3:op.filter(function(r){return r.stayDays>=3;}).length, escDays:5};
+  }
+  if(fn==='api_dashboard'){
+    var open=all.filter(function(r){return r.state==='承認待ち'||r.state==='2段目の承認待ち';});
+    var by={};
+    open.forEach(function(r){ var w=(r.state==='承認待ち')?r.boss:r.exec;
+      by[w]=by[w]||{name:w,count:0,days:0,max:0,over:0};
+      by[w].count++; by[w].days+=r.stayDays; by[w].max=Math.max(by[w].max,r.stayDays);
+      if(r.stayDays>=3) by[w].over++; });
+    var rank=Object.keys(by).map(function(k){var b=by[k];b.avg=Math.round(b.days/b.count*10)/10;return b;})
+      .sort(function(a,b){return b.max-a.max;});
+    return {open:open.sort(function(a,b){return b.stayDays-a.stayDays;}), rank:rank,
+      stats:{openCount:open.length,over3:open.filter(function(r){return r.stayDays>=3;}).length,
+        over5:open.filter(function(r){return r.stayDays>=5;}).length,
+        doneThisMonth:all.filter(function(r){return r.state==='承認済み';}).length, avgLead:0}};
+  }
+  return {ok:false,msg:'demo: '+fn};
 }
-
 </script>
