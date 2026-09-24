@@ -558,6 +558,16 @@ function vHome(){
     b4.onclick=function(){ go('dash'); }; put(b4);
   }
 
+  /* 押した瞬間に開くよう、よく見る画面を裏で先読みしておく（初回タップも速くする）。
+     結果はキャッシュに入るだけ。承認待ちは上でもう読み込んでいる。 */
+  if(!DEMO){
+    setTimeout(function(){
+      call('api_board',[],function(){});
+      if(ME.isApprover){ call('api_dashboard',[],function(){}); }
+      if(!noSub){ call('api_myList',[ME.name],function(){}); }
+    }, 200);
+  }
+
   if(DEMO){
     var rb = el('<button class="btn gray" style="font-size:16px;padding:13px">'+
       'お試しデータを消してまっさらにする</button>');
