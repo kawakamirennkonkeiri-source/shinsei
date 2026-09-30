@@ -513,6 +513,17 @@ function noSubmit(name){
     .filter(function(x){return x;}).indexOf(k)>=0;
 }
 
+/* 会議決定（2026-09-28）：残業申請書は社員だけ。特定技能1号・2号の人には［残業申請書］タイルを出さない。
+   例外＝フエン・チュオン・クオン・クアンは残す。判定は「社員」シートの区分に「特定技能」が入っているか。
+   区分は起動時データ（BOOT.employees）から氏名で引く。他の申請ボタンには影響しない。 */
+function noZangyo(name){
+  var k=String(name||'').replace(/\s/g,'');
+  var KEEP=['ホアン　テイ　フエン','チャン ヴァン チュオン','ダン ヴァン クアン','ファン マイン クオン'];
+  if(KEEP.map(function(x){return x.replace(/\s/g,'');}).indexOf(k)>=0) return false;
+  var emp=(BOOT.employees||[]).filter(function(e){return String(e.name).replace(/\s/g,'')===k;})[0];
+  return /特定技能/.test(emp?String(emp.kind||''):'');
+}
+
 function vHome(){
   put(langBar());
   if(ME.isApprover) put('<div id="alertBox"></div>');
@@ -609,6 +620,7 @@ function vTypes(){
   var g = el('<div class="grid"></div>');
   FORMS.forEach(function(F){
     if(F.jaOnly && lang!=='ja') return;
+    if(F.k==='残業申請書' && noZangyo(ME.name)) return;   // 会議決定：残業申請は社員だけ（特定技能は非表示・例外4名は残す）
     var sub = (lang!=='ja' && F[lang]) ? '<span class="sub">'+esc(F.ja)+'</span>' : '';
     var b = el('<button><span class="em">'+F.em+'</span><span>'+esc(T(F))+'</span>'+sub+'</button>');
     b.onclick=function(){ go('form',F.k); };
