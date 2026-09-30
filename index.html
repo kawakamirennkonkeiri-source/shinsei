@@ -52,6 +52,7 @@
   .btn{display:block;width:100%;border:0;border-radius:13px;padding:17px;font-size:19px;
     font-weight:700;color:#fff;background:var(--g);margin:14px 0 0}
   .btn.gray{background:#8a938c}.btn.bad{background:var(--bad)}.btn.warn{background:var(--warn)}
+  .btn:disabled{background:#c3c9c4;color:#eef1ee;cursor:not-allowed}
   .row{display:flex;gap:8px}.row>*{flex:1}
   .item{background:#fff;border:1px solid var(--line);border-left:6px solid var(--line);
     border-radius:12px;padding:12px;margin:9px 0}
@@ -185,8 +186,8 @@ var FORMS = [
   {k:'reason',t:'area',ja:'理由（任意）',vi:'Lý do (nếu có)',id:'Alasan (opsional)'}
  ]},
 
-{k:'残業申請書', em:'🕗', sum:['date','time','hours','reason'],
- ja:'残業申請書', vi:'Đơn xin làm thêm giờ', id:'Permohonan Kerja Lembur',
+{k:'残業報告確認書', em:'🕗', sum:['date','time','hours','reason'],
+ ja:'残業報告確認書', vi:'Phiếu xác nhận báo cáo làm thêm giờ', id:'Formulir Konfirmasi Laporan Lembur',
  note:{ja:'1時間以上の残業が見込まれるときに、事前に申請してください。',
        vi:'Nếu dự kiến làm thêm từ 1 giờ trở lên, hãy xin phép trước.',
        id:'Ajukan sebelumnya jika diperkirakan lembur 1 jam atau lebih.'},
@@ -196,15 +197,8 @@ var FORMS = [
    ja:'予定時間（残業を始める時間）',vi:'Thời gian dự kiến (giờ bắt đầu)',id:'Perkiraan waktu (jam mulai)'},
   {k:'hours',t:'select',req:1,o:HOURS,
    ja:'予定 時間数',vi:'Số giờ dự kiến',id:'Perkiraan jumlah jam'},
-  {k:'reason',t:'select',req:1,
-   o:['ヘルプ','会議時間超過','自部署業務遅延','その他'],
-   oL:{vi:['Hỗ trợ bộ phận khác','Họp kéo dài quá giờ','Công việc bộ phận mình bị chậm','Khác'],
-       id:['Bantu bagian lain','Rapat melebihi waktu','Pekerjaan bagian sendiri terlambat','Lainnya']},
+  {k:'reason',t:'area',req:1,
    ja:'残業理由',vi:'Lý do làm thêm',id:'Alasan lembur'},
-  {k:'reason2',t:'area',reqIf:{k:'reason',v:'その他'},
-   ja:'「その他」を選んだときは、ここに理由を書いてください',
-   vi:'Nếu chọn "Khác", hãy ghi lý do ở đây',
-   id:'Jika memilih "Lainnya", tulis alasannya di sini'},
   {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
  ]},
 
@@ -358,7 +352,7 @@ function seedDemo(){
      boss:'見本　生産執行役',exec:'',state:'承認待ち',summary:'熊本→広島 出荷応援',amount:0,
      fields:[{k:'purpose',label:'使用目的',value:'東広島事業所へ出荷の応援に行くため'},
              {k:'dest',label:'目的地',value:'東広島事���所'},{k:'car',label:'車種',value:'ハイエース'}]},
-    {id:'D-0002',_at:ago(7),type:'残業申請書',applicant:'見本　センター社員',dept:'センター',site:'熊本',
+    {id:'D-0002',_at:ago(7),type:'残業報告確認書',applicant:'見本　センター社員',dept:'センター',site:'熊本',
      boss:'見本　センター執行役',exec:'',state:'承認待ち',summary:'17:30 / 2時間 / ヘルプ',amount:0,
      fields:[{k:'time',label:'予定時間（残業を始める時間）',value:'17:30'},
              {k:'hours',label:'予定 時間数',value:'2時間'},{k:'reason',label:'残業理由',value:'ヘルプ'}]},
@@ -513,15 +507,19 @@ function noSubmit(name){
     .filter(function(x){return x;}).indexOf(k)>=0;
 }
 
-/* 会議決定（2026-09-28）：残業申請書は社員だけ。特定技能1号・2号の人には［残業申請書］タイルを出さない。
-   例外＝フエン・チュオン・クオン・クアンは残す。判定は「社員」シートの区分に「特定技能」が入っているか。
-   区分は起動時データ（BOOT.employees）から氏名で引く。他の申請ボタンには影響しない。 */
+/* 会議決定：残業申請は「社員」だけ。［残業報告確認書］タイルは 区分＝社員・役員 の人にだけ出す。
+   パート／アルバイト／特定技能1号・2号／自社（直接雇用の外国人）には出さない。
+   例外＝フエン・チュオン・クオン・クアンの4名は必ず残す（KEEP）。
+   区分は起動時データ（BOOT.employees）から氏名で引く。他の申請ボタンには影響しない。
+   ※お試し表示など区分が空のときは、従来どおり表示する（誤って隠さない）。 */
 function noZangyo(name){
   var k=String(name||'').replace(/\s/g,'');
   var KEEP=['ホアン　テイ　フエン','チャン ヴァン チュオン','ダン ヴァン クアン','ファン マイン クオン'];
   if(KEEP.map(function(x){return x.replace(/\s/g,'');}).indexOf(k)>=0) return false;
   var emp=(BOOT.employees||[]).filter(function(e){return String(e.name).replace(/\s/g,'')===k;})[0];
-  return /特定技能/.test(emp?String(emp.kind||''):'');
+  var kind=emp?String(emp.kind||''):'';
+  if(!kind) return false;                // 区分不明（お試し等）は従来どおり表示
+  return !/社員|役員/.test(kind);          // 社員・役員だけ表示。パート/アルバイト/特定技能/自社は非表示
 }
 
 function vHome(){
@@ -620,7 +618,7 @@ function vTypes(){
   var g = el('<div class="grid"></div>');
   FORMS.forEach(function(F){
     if(F.jaOnly && lang!=='ja') return;
-    if(F.k==='残業申請書' && noZangyo(ME.name)) return;   // 会議決定：残業申請は社員だけ（特定技能は非表示・例外4名は残す）
+    if(F.k==='残業報告確認書' && noZangyo(ME.name)) return;   // 会議決定：残業申請は社員だけ（パート/アルバイト/特定技能/自社は非表示・例外4名は残す）
     var sub = (lang!=='ja' && F[lang]) ? '<span class="sub">'+esc(F.ja)+'</span>' : '';
     var b = el('<button><span class="em">'+F.em+'</span><span>'+esc(T(F))+'</span>'+sub+'</button>');
     b.onclick=function(){ go('form',F.k); };
@@ -680,9 +678,16 @@ function vForm(key){
   });
   put(wrapEl);
 
-  var btn = el('<button class="btn">'+T(UI.send)+'</button>');
+  var btn = el('<button class="btn" disabled>'+T(UI.send)+'</button>');
   btn.onclick=function(){ submit(F,btn); };
   put(btn);
+
+  /* 必須項目が全部そろうまで［この内容で申請する］は押せない。
+     入力・選択のたびに collect() で未入力(miss)を見て、無ければ有効化する。 */
+  function refreshBtn(){ btn.disabled = !!collect(F).miss; }
+  wrapEl.addEventListener('input',  refreshBtn);
+  wrapEl.addEventListener('change', refreshBtn);
+  refreshBtn();
 }
 
 function collect(F){
