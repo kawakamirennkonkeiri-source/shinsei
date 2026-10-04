@@ -219,20 +219,36 @@ var FORMS = [
   {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
  ]},
 
-{k:'通勤手当申請書', em:'🛣️', sum:['kubun','way','km'],
+{k:'通勤手当申請書', em:'🛣️', sum:['way','km','amount'],
  ja:'通勤手当申請書', vi:'Đơn xin phụ cấp đi lại', id:'Tunjangan Transportasi',
- note:{ja:'自動車・バイクの方は 免許証／車検証／任意保険証 のコピーを提出してください。',
-       vi:'Nếu đi ô tô hoặc xe máy, hãy nộp bản copy: giấy phép lái xe, giấy kiểm định, bảo hiểm tự nguyện.',
-       id:'Jika pakai mobil/motor, serahkan fotokopi: SIM, STNK (shaken), dan asuransi sukarela.'},
+ note:{ja:'入社後10日以内に申請してください。提出先＝経営管理部 木ノ下。\n対象＝自動車・バイク・公共交通機関（徒歩・自転車は対象外）。\n免許証・車検証・自賠責保険証明書・任意保険証券・定期券/運賃の資料は、経営管理部 木ノ下へ直接（紙またはデータ）提出してください。\n住所・通勤方法・経路・車両・保険内容などに変更があったら、速やかに再申請してください。',
+       vi:'Hãy nộp trong vòng 10 ngày sau khi vào làm. Nơi nộp＝Bộ phận quản lý kinh doanh, anh Kinoshita.\nĐối tượng＝ô tô, xe máy, phương tiện công cộng (đi bộ・xe đạp không được tính).\nGiấy phép lái xe, giấy kiểm định, bảo hiểm bắt buộc, bảo hiểm tự nguyện, giấy tờ vé tháng/giá vé: nộp trực tiếp (giấy hoặc dữ liệu) cho anh Kinoshita.\nNếu có thay đổi về địa chỉ, phương tiện, lộ trình, xe, bảo hiểm… hãy xin lại ngay.',
+       id:'Ajukan dalam 10 hari setelah masuk kerja. Tujuan＝Bagian manajemen, Bpk. Kinoshita.\nYang dapat＝mobil, motor, angkutan umum (jalan kaki・sepeda tidak termasuk).\nSIM, STNK, asuransi wajib (jibaiseki), polis asuransi sukarela, dan bukti biaya langganan/ongkos: serahkan langsung (kertas atau data) ke Bpk. Kinoshita.\nJika ada perubahan alamat, cara, rute, kendaraan, asuransi… segera ajukan ulang.'},
  f:[
   {k:'kubun',t:'select',req:1,o:['新規','変更','継続'],ja:'区分',vi:'Loại',id:'Kategori'},
-  {k:'way',t:'select',req:1,o:['自動車','バイク','自転車','徒歩','公共交通'],
-   ja:'通勤手段',vi:'Phương tiện',id:'Sarana'},
-  {k:'addr',t:'area',req:1,ja:'住所',vi:'Địa chỉ',id:'Alamat'},
-  {k:'route',t:'area',req:1,ja:'通勤経路',vi:'Lộ trình',id:'Rute'},
-  {k:'km',t:'num',req:1,ja:'会社までの距離（片道 km）',vi:'Khoảng cách 1 chiều (km)',id:'Jarak satu arah (km)'},
-  {k:'docs',t:'checks',o:['免許証コピー','車検証コピー','任意保険証コピー'],
-   ja:'提出する書類',vi:'Giấy tờ nộp kèm',id:'Dokumen yang dilampirkan'}
+  {k:'addr',t:'area',req:1,ja:'自宅住所',vi:'Địa chỉ nhà',id:'Alamat rumah'},
+  {k:'way',t:'select',req:1,o:['自動車','バイク','公共交通機関'],
+   oL:{vi:['Ô tô','Xe máy','Phương tiện công cộng'],id:['Mobil','Motor','Angkutan umum']},
+   ja:'通勤方法',vi:'Phương tiện đi làm',id:'Sarana ke tempat kerja'},
+  {k:'route',t:'area',req:1,ja:'通勤経路',vi:'Lộ trình đi làm',id:'Rute'},
+  {k:'km',t:'num',req:1,ja:'片道距離（km）',vi:'Khoảng cách 1 chiều (km)',id:'Jarak satu arah (km)'},
+  {k:'min',t:'num',req:1,ja:'片道の通勤時間（分）',vi:'Thời gian đi 1 chiều (phút)',id:'Waktu satu arah (menit)'},
+  {k:'amount',t:'num',req:1,ja:'通勤手当 申請額（円）',vi:'Số tiền phụ cấp xin (yên)',id:'Jumlah tunjangan diminta (yen)'},
+  {k:'start',t:'date',req:1,ja:'適用開始日',vi:'Ngày bắt đầu áp dụng',id:'Tanggal mulai berlaku'},
+  /* 自動車・バイクの方だけ必須 */
+  {k:'carno',t:'text',reqIf:{k:'way',v:['自動車','バイク']},
+   ja:'車両番号（ナンバープレート）※自動車・バイクの方',
+   vi:'Biển số xe ※nếu đi ô tô/xe máy',id:'Nomor plat ※jika mobil/motor'},
+  /* 公共交通機関の方だけ必須 */
+  {k:'line',t:'text',reqIf:{k:'way',v:'公共交通機関'},
+   ja:'利用する交通機関 ※公共交通の方',vi:'Phương tiện công cộng sử dụng',id:'Angkutan umum yang dipakai'},
+  {k:'section',t:'text',reqIf:{k:'way',v:'公共交通機関'},
+   ja:'利用区間 ※公共交通の方',vi:'Đoạn tuyến sử dụng',id:'Ruas yang dipakai'},
+  {k:'fare',t:'num',reqIf:{k:'way',v:'公共交通機関'},
+   ja:'片道運賃（円）※公共交通の方',vi:'Giá vé 1 chiều (yên)',id:'Ongkos satu arah (yen)'},
+  {k:'pass',t:'num',reqIf:{k:'way',v:'公共交通機関'},
+   ja:'定期券代または月額通勤費（円）※公共交通の方',vi:'Tiền vé tháng hoặc chi phí tháng (yên)',id:'Biaya langganan/bulanan (yen)'},
+  {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
  ]},
 
 {k:'一時帰国希望申請書', em:'✈️', sum:['out','back','purpose'],
@@ -281,6 +297,68 @@ var FORMS = [
   {k:'fee',t:'num',amt:1,ja:'受験料（円）'},
   {k:'trans',t:'num',amt:1,ja:'交通費（円）'},
   {k:'memo',t:'area',ja:'備考'}
+ ]},
+
+/* ===== 外国人むけ 資格取得申請（❶〜❹）会議決定で新設 =====
+   申請前に必ず職長へ相談→アプリの承認（職長/承認者が「承認」か「差戻」）で確認する。
+   氏名・所属はログイン情報から自動で記録されるので入力項目には入れていない。 */
+{k:'特定技能2号資格申請', em:'🛂', sum:['zairyu','examtime'],
+ ja:'特定技能2号資格申請', vi:'Xin tư cách Kỹ năng đặc định số 2', id:'Pengajuan SSW Tingkat 2',
+ note:{ja:'申請前に、必ず事前に職長へ相談してから申請してください。',
+       vi:'Trước khi nộp, nhất định phải trao đổi trước với tổ trưởng.',
+       id:'Sebelum mengajukan, wajib berkonsultasi dulu dengan kepala regu.'},
+ f:[
+  {k:'boss',t:'text',req:1,ja:'職長名',vi:'Tên tổ trưởng',id:'Nama kepala regu'},
+  {k:'zairyu',t:'text',req:1,ja:'現在の在留資格',vi:'Tư cách lưu trú hiện tại',id:'Status tinggal saat ini'},
+  {k:'kigen',t:'date',req:1,ja:'在留期限',vi:'Hạn lưu trú',id:'Batas izin tinggal'},
+  {k:'start1',t:'text',req:1,ja:'特定技能1号として働き始めた時期',vi:'Thời điểm bắt đầu làm Kỹ năng đặc định số 1',id:'Kapan mulai kerja sebagai SSW Tingkat 1'},
+  {k:'reason',t:'area',req:1,ja:'2号を取得したい理由',vi:'Lý do muốn lấy số 2',id:'Alasan ingin Tingkat 2'},
+  {k:'examtime',t:'text',req:1,ja:'受験予定時期',vi:'Thời gian dự kiến thi',id:'Perkiraan waktu ujian'},
+  {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
+ ]},
+
+{k:'自動車免許等資格申請', em:'🚗', sum:['want','when'],
+ ja:'自動車免許（バイク）等資格申請', vi:'Xin bằng lái xe ô tô (xe máy) v.v.', id:'Pengajuan SIM mobil (motor) dll.',
+ note:{ja:'準中型限定解除・MT限定解除を含みます。申請前に、必ず事前に職長へ相談してから申請してください。',
+       vi:'Bao gồm gỡ giới hạn xe bán trung・gỡ giới hạn số sàn (MT). Trước khi nộp, nhất định phải trao đổi trước với tổ trưởng.',
+       id:'Termasuk pelepasan batas semi-menengah・pelepasan batas MT. Sebelum mengajukan, wajib berkonsultasi dulu dengan kepala regu.'},
+ f:[
+  {k:'boss',t:'text',req:1,ja:'職長名',vi:'Tên tổ trưởng',id:'Nama kepala regu'},
+  {k:'have',t:'text',req:1,ja:'現在持っている免許',vi:'Bằng lái hiện có',id:'SIM yang dimiliki sekarang'},
+  {k:'want',t:'text',req:1,ja:'取得したい免許・限定解除',vi:'Bằng・gỡ giới hạn muốn lấy',id:'SIM・pelepasan batas yang diinginkan'},
+  {k:'reason',t:'area',req:1,ja:'取得したい理由',vi:'Lý do muốn lấy',id:'Alasan ingin mengambil'},
+  {k:'when',t:'text',req:1,ja:'希望時期',vi:'Thời gian mong muốn',id:'Waktu yang diinginkan'},
+  {k:'school',t:'text',ja:'教習所名（決まっている場合のみ）',vi:'Tên trường dạy lái (nếu đã quyết định)',id:'Nama tempat kursus (jika sudah ada)'},
+  {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
+ ]},
+
+{k:'日本語検定資格取得申請', em:'🗾', sum:['level','day'],
+ ja:'日本語検定資格取得申請', vi:'Xin thi chứng chỉ tiếng Nhật', id:'Pengajuan sertifikat bahasa Jepang',
+ note:{ja:'申請前に、必ず事前に職長へ相談してから申請してください。',
+       vi:'Trước khi nộp, nhất định phải trao đổi trước với tổ trưởng.',
+       id:'Sebelum mengajukan, wajib berkonsultasi dulu dengan kepala regu.'},
+ f:[
+  {k:'boss',t:'text',req:1,ja:'職長名',vi:'Tên tổ trưởng',id:'Nama kepala regu'},
+  {k:'have',t:'text',req:1,ja:'現在持っている日本語資格',vi:'Chứng chỉ tiếng Nhật hiện có',id:'Sertifikat bahasa Jepang yang dimiliki'},
+  {k:'level',t:'text',req:1,ja:'今回受験したい級',vi:'Cấp muốn thi lần này',id:'Level yang ingin diujikan kali ini'},
+  {k:'day',t:'date',req:1,ja:'受験予定日',vi:'Ngày dự kiến thi',id:'Tanggal rencana ujian'},
+  {k:'reason',t:'area',req:1,ja:'受験したい理由',vi:'Lý do muốn thi',id:'Alasan ingin ujian'},
+  {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
+ ]},
+
+{k:'その他資格取得申請', em:'🎓', sum:['name','when'],
+ ja:'その他資格取得申請', vi:'Xin lấy chứng chỉ khác', id:'Pengajuan sertifikat lainnya',
+ note:{ja:'申請前に、必ず事前に職長へ相談してから申請してください。',
+       vi:'Trước khi nộp, nhất định phải trao đổi trước với tổ trưởng.',
+       id:'Sebelum mengajukan, wajib berkonsultasi dulu dengan kepala regu.'},
+ f:[
+  {k:'boss',t:'text',req:1,ja:'職長名',vi:'Tên tổ trưởng',id:'Nama kepala regu'},
+  {k:'name',t:'text',req:1,ja:'取得したい資格名',vi:'Tên chứng chỉ muốn lấy',id:'Nama sertifikat yang diinginkan'},
+  {k:'reason',t:'area',req:1,ja:'取得したい理由',vi:'Lý do muốn lấy',id:'Alasan ingin mengambil'},
+  {k:'when',t:'text',req:1,ja:'希望時期',vi:'Thời gian mong muốn',id:'Waktu yang diinginkan'},
+  {k:'day',t:'date',ja:'受講・試験予定日',vi:'Ngày học/thi dự kiến',id:'Tanggal kursus/ujian'},
+  {k:'fee',t:'num',ja:'費用（円・分かる場合のみ）',vi:'Chi phí (yên・nếu biết)',id:'Biaya (yen・jika tahu)'},
+  {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
  ]}
 ];
 
@@ -706,7 +784,10 @@ function collect(F){
   });
   F.f.forEach(function(fl){
     var v=val[fl.k];
-    var need = fl.req || (fl.reqIf && val[fl.reqIf.k]===fl.reqIf.v);
+    /* reqIf の v は1つでも配列でもOK（配列なら「どれか一致」で必須になる） */
+    var rq = fl.reqIf ? (Array.isArray(fl.reqIf.v) ? fl.reqIf.v.indexOf(val[fl.reqIf.k])>=0
+                                                   : val[fl.reqIf.k]===fl.reqIf.v) : false;
+    var need = fl.req || rq;
     if(need && !miss){
       if(fl.t==='checks'){ if(val['__n_'+fl.k] < fl.o.length) miss=T(fl); }
       else if(!v) miss=T(fl);
