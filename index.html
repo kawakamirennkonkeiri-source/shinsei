@@ -133,7 +133,7 @@ var UI = {
   visa:{ja:'ビザ・在留資格',vi:'Visa / Tư cách lưu trú',id:'Visa / Izin Tinggal'},
   visaS:{ja:'Googleフォームへ',vi:'Chuyển sang Google Form',id:'Ke Google Form'},
   visaNote:{ja:'ビザ・在留資格の手続きは Googleフォーム で受け付けます。タップするとフォームが開きます。ログインは要りません。書類の写真は添付できないので、必要なときは担当者に直接渡してください。',
-            vi:'Thủ tục visa / tư cách lưu trú nh���n qua Google Form. Bấm vào để mở form. Không cần đăng nhập. Không đính kèm được ảnh giấy tờ, khi cần hãy đưa trực tiếp cho người phụ trách.',
+            vi:'Thủ tục visa / tư cách lưu trú nhận qua Google Form. Bấm vào để mở form. Không cần đăng nhập. Không đính kèm được ảnh giấy tờ, khi cần hãy đưa trực tiếp cho người phụ trách.',
             id:'Prosedur visa / izin tinggal diterima lewat Google Form. Ketuk untuk membuka form. Tidak perlu login. Foto dokumen tidak bisa dilampirkan, bila perlu serahkan langsung ke penanggung jawab.'},
   waitHead:{ja:'承認をお待ちしています',vi:'Đang chờ phê duyệt',id:'Menunggu persetujuan'},
   waitCall:{ja:'この画面を見た人は、上に名前が出ている人へ声をかけてください。「承認が溜まっています」と伝えるだけで大丈夫です。',
@@ -165,7 +165,11 @@ var HHMM = (function(){
 })();
 /* 時間数のプルダウン */
 var HOURS = ['0.5時間','1時間','1.5時間','2時間','2.5時間','3時間','3.5時間','4時間',
-             '4.5時間','5時間','6時間','7時間','8���間'];
+             '4.5時間','5時間','6時間','7時間','8時間'];
+/* 都道府県（試験・講習の場所えらび用） */
+var PREFS = ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
+/* 所属（部署えらび用） */
+var BUSHO = ['生産部','センターOP部','広島事業所','経営管理部','MD部'];
 
 /* =============================================================
  *  申請フォームの定義（ここを増やせば申請種類が増えます）
@@ -219,38 +223,6 @@ var FORMS = [
   {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
  ]},
 
-{k:'通勤手当申請書', em:'🛣️', sum:['way','km','amount'],
- ja:'通勤手当申請書', vi:'Đơn xin phụ cấp đi lại', id:'Tunjangan Transportasi',
- note:{ja:'入社後10日以内に申請してください。提出先＝経営管理部 木ノ下。\n対象＝自動車・バイク・公共交通機関（徒歩・自転車は対象外）。\n免許証・車検証・自賠責保険証明書・任意保険証券・定期券/運賃の資料は、経営管理部 木ノ下へ直接（紙またはデータ）提出してください。\n住所・通勤方法・経路・車両・保険内容などに変更があったら、速やかに再申請してください。',
-       vi:'Hãy nộp trong vòng 10 ngày sau khi vào làm. Nơi nộp＝Bộ phận quản lý kinh doanh, anh Kinoshita.\nĐối tượng＝ô tô, xe máy, phương tiện công cộng (đi bộ・xe đạp không được tính).\nGiấy phép lái xe, giấy kiểm định, bảo hiểm bắt buộc, bảo hiểm tự nguyện, giấy tờ vé tháng/giá vé: nộp trực tiếp (giấy hoặc dữ liệu) cho anh Kinoshita.\nNếu có thay đổi về địa chỉ, phương tiện, lộ trình, xe, bảo hiểm… hãy xin lại ngay.',
-       id:'Ajukan dalam 10 hari setelah masuk kerja. Tujuan＝Bagian manajemen, Bpk. Kinoshita.\nYang dapat＝mobil, motor, angkutan umum (jalan kaki・sepeda tidak termasuk).\nSIM, STNK, asuransi wajib (jibaiseki), polis asuransi sukarela, dan bukti biaya langganan/ongkos: serahkan langsung (kertas atau data) ke Bpk. Kinoshita.\nJika ada perubahan alamat, cara, rute, kendaraan, asuransi… segera ajukan ulang.'},
- f:[
-  {k:'kubun',t:'select',req:1,o:['新規','変更','継続'],ja:'区分',vi:'Loại',id:'Kategori'},
-  {k:'addr',t:'area',req:1,ja:'自宅住所',vi:'Địa chỉ nhà',id:'Alamat rumah'},
-  {k:'way',t:'select',req:1,o:['自動車','バイク','公共交通機関'],
-   oL:{vi:['Ô tô','Xe máy','Phương tiện công cộng'],id:['Mobil','Motor','Angkutan umum']},
-   ja:'通勤方法',vi:'Phương tiện đi làm',id:'Sarana ke tempat kerja'},
-  {k:'route',t:'area',req:1,ja:'通勤経路',vi:'Lộ trình đi làm',id:'Rute'},
-  {k:'km',t:'num',req:1,ja:'片道距離（km）',vi:'Khoảng cách 1 chiều (km)',id:'Jarak satu arah (km)'},
-  {k:'min',t:'num',req:1,ja:'片道の通勤時間（分）',vi:'Thời gian đi 1 chiều (phút)',id:'Waktu satu arah (menit)'},
-  {k:'amount',t:'num',req:1,ja:'通勤手当 申請額（円）',vi:'Số tiền phụ cấp xin (yên)',id:'Jumlah tunjangan diminta (yen)'},
-  {k:'start',t:'date',req:1,ja:'適用開始日',vi:'Ngày bắt đầu áp dụng',id:'Tanggal mulai berlaku'},
-  /* 自動車・バイクの方だけ必須 */
-  {k:'carno',t:'text',reqIf:{k:'way',v:['自動車','バイク']},
-   ja:'車両番号（ナンバープレート）※自動車・バイクの方',
-   vi:'Biển số xe ※nếu đi ô tô/xe máy',id:'Nomor plat ※jika mobil/motor'},
-  /* 公共交通機関の方だけ必須 */
-  {k:'line',t:'text',reqIf:{k:'way',v:'公共交通機関'},
-   ja:'利用する交通機関 ※公共交通の方',vi:'Phương tiện công cộng sử dụng',id:'Angkutan umum yang dipakai'},
-  {k:'section',t:'text',reqIf:{k:'way',v:'公共交通機関'},
-   ja:'利用区間 ※公共交通の方',vi:'Đoạn tuyến sử dụng',id:'Ruas yang dipakai'},
-  {k:'fare',t:'num',reqIf:{k:'way',v:'公共交通機関'},
-   ja:'片道運賃（円）※公共交通の方',vi:'Giá vé 1 chiều (yên)',id:'Ongkos satu arah (yen)'},
-  {k:'pass',t:'num',reqIf:{k:'way',v:'公共交通機関'},
-   ja:'定期券代または月額通勤費（円）※公共交通の方',vi:'Tiền vé tháng hoặc chi phí tháng (yên)',id:'Biaya langganan/bulanan (yen)'},
-  {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
- ]},
-
 {k:'一時帰国希望申請書', em:'✈️', sum:['out','back','purpose'],
  ja:'一時帰国希望申請書', vi:'Đơn xin về nước tạm thời', id:'Permohonan Pulang Sementara',
  note:{ja:'・原則6ヶ月前までに職長へ相談し、許可をもらってから作成してください。\n・書類は原則3ヶ月前までに提出してください。\n・航空券を取る前に、必ず総務の担当者へ相談してください。\n・一時帰国の費用は自己負担です。\n・帰国する期間によっては、住民税・社会保険料を一括で払っていただく場合があります。\n・申請した帰国日を必ず守り、日本へ戻ってきてください。',
@@ -267,105 +239,83 @@ var FORMS = [
    vi:'Tôi đã trao đổi và được tổ trưởng cho phép',id:'Saya sudah berkonsultasi dan diizinkan kepala regu'}
  ]},
 
-{k:'資格取得制度申請書', em:'🎓', sum:['name','fee'], jaOnly:1,
- ja:'資格取得制度申請書',
- note:{ja:'・自己負担した場合は領収書を添付してください。\n・汎用性のある免許は貸���となるため、誓約書の添付が必要です。'},
+/* ===== 資格取得・在留系（会議決定で再編 2026-10-12） =====
+   職長へ事前相談→アプリの承認（職長/承認者が「承認」か「差戻」）で確認する。 */
+{k:'資格取得制度申請書', em:'🎓', sum:['name','place','fee'],
+ ja:'資格取得制度申請書', vi:'Đơn xin chế độ lấy chứng chỉ', id:'Pengajuan sistem perolehan sertifikat',
+ note:{ja:'・運転免許は貸付制度があります。上長の許可が出た後に、サイン（誓約書）をいただきます。\n・日本語検定は、合格証と領収書の両方がそろってから換金（精算）します。\n・自己負担した場合は領収書を保管してください。',
+       vi:'・Bằng lái xe có chế độ cho vay. Sau khi cấp trên cho phép, bạn sẽ ký (giấy cam kết).\n・Chứng chỉ tiếng Nhật: chỉ hoàn tiền khi có đủ cả giấy đỗ và hóa đơn.\n・Nếu tự chi trả, hãy giữ hóa đơn.',
+       id:'・SIM memiliki sistem pinjaman. Setelah atasan mengizinkan, Anda akan tanda tangan (surat pernyataan).\n・Sertifikat bahasa Jepang: dicairkan hanya bila ada sertifikat lulus dan kuitansi.\n・Jika bayar sendiri, simpan kuitansinya.'},
  f:[
-  {k:'birth',t:'date',ja:'生年月日'},
-  {k:'tel',t:'text',ja:'電話番号'},
-  {k:'name',t:'text',req:1,ja:'資格内容'},
-  {k:'need',t:'area',req:1,ja:'資格取得の必要性'},
-  {k:'place',t:'text',ja:'資格取得場所'},
-  {k:'from',t:'date',ja:'講習期間（開始）'},
-  {k:'till',t:'date',ja:'講習期間（終了）'},
-  {k:'fee',t:'num',req:1,amt:1,ja:'取得費用（円）'},
-  {k:'trans',t:'num',amt:1,ja:'交通費（円）'},
-  {k:'memo',t:'area',ja:'備考'}
+  {k:'busho',t:'select',req:1,o:BUSHO,ja:'所属',vi:'Bộ phận',id:'Bagian'},
+  {k:'who',t:'text',req:1,ja:'氏名',vi:'Họ tên',id:'Nama'},
+  {k:'birth',t:'date',req:1,ja:'生年月日',vi:'Ngày sinh',id:'Tanggal lahir'},
+  {k:'name',t:'select',req:1,o:['運転免許／普通自動車','運転免許／準中型','運転免許／原付','運転免許／大型特殊','運転免許／小型車両系建設機械','運転免許／フォークリフト','日本語検定／N4','日本語検定／N3','日本語検定／N2','農業簿記／3級','農業簿記／2級'],
+   ja:'資格内容',vi:'Nội dung chứng chỉ',id:'Isi sertifikat'},
+  {k:'place',t:'select',req:1,o:PREFS,ja:'試験を受ける場所（都道府県）',vi:'Nơi dự thi (tỉnh/phủ)',id:'Tempat ujian (prefektur)'},
+  {k:'from',t:'date',ja:'講習期間（開始）',vi:'Thời gian học (bắt đầu)',id:'Masa kursus (mulai)'},
+  {k:'till',t:'date',ja:'講習期間（終了）',vi:'Thời gian học (kết thúc)',id:'Masa kursus (selesai)'},
+  {k:'fee',t:'num',req:1,amt:1,ja:'取得費用（円）',vi:'Chi phí lấy (yên)',id:'Biaya perolehan (yen)'},
+  {k:'trans',t:'num',ja:'交通費（円）',vi:'Chi phí đi lại (yên)',id:'Biaya transport (yen)'},
+  {k:'memo',t:'area',ja:'備考',vi:'Ghi chú',id:'Catatan'}
  ]},
 
-{k:'資格試験申込書', em:'📝', sum:['exam','day'], jaOnly:1,
- ja:'資格試験申込書',
- note:{ja:'自己負担した場合は領収書を添付してください。'},
- f:[
-  {k:'birth',t:'date',ja:'生年月日'},
-  {k:'tel',t:'text',ja:'電話番号'},
-  {k:'exam',t:'text',req:1,ja:'試験名'},
-  {k:'day',t:'date',req:1,ja:'試験実施日'},
-  {k:'org',t:'text',ja:'試験実施団体'},
-  {k:'place',t:'text',ja:'試験会場'},
-  {k:'purpose',t:'area',req:1,ja:'受験目的'},
-  {k:'fee',t:'num',amt:1,ja:'受験料（円）'},
-  {k:'trans',t:'num',amt:1,ja:'交通費（円）'},
-  {k:'memo',t:'area',ja:'備考'}
- ]},
-
-/* ===== 外国人むけ 資格取得申請（❶〜❹）会議決定で新設 =====
-   申請前に必ず職長へ相談→アプリの承認（職長/承認者が「承認」か「差戻」）で確認する。
-   氏名・所属はログイン情報から自動で記録されるので入力項目には入れていない。 */
-{k:'特定技能2号資格申請', em:'🛂', sum:['zairyu','examtime'],
+{k:'特定技能2号資格申請', em:'🛂', sum:['kigen','examtime'],
  ja:'特定技能2号資格申請', vi:'Xin tư cách Kỹ năng đặc định số 2', id:'Pengajuan SSW Tingkat 2',
  note:{ja:'申請前に、必ず事前に職長へ相談してから申請してください。',
        vi:'Trước khi nộp, nhất định phải trao đổi trước với tổ trưởng.',
        id:'Sebelum mengajukan, wajib berkonsultasi dulu dengan kepala regu.'},
  f:[
+  {k:'busho',t:'select',req:1,o:BUSHO,ja:'所属',vi:'Bộ phận',id:'Bagian'},
   {k:'boss',t:'text',req:1,ja:'職長名',vi:'Tên tổ trưởng',id:'Nama kepala regu'},
-  {k:'zairyu',t:'text',req:1,ja:'現在の在留資格',vi:'Tư cách lưu trú hiện tại',id:'Status tinggal saat ini'},
+  {k:'zairyu',t:'select',req:1,o:['特定技能1号'],ja:'現在の在留資格',vi:'Tư cách lưu trú hiện tại',id:'Status tinggal saat ini'},
   {k:'kigen',t:'date',req:1,ja:'在留期限',vi:'Hạn lưu trú',id:'Batas izin tinggal'},
-  {k:'start1',t:'text',req:1,ja:'特定技能1号として働き始めた時期',vi:'Thời điểm bắt đầu làm Kỹ năng đặc định số 1',id:'Kapan mulai kerja sebagai SSW Tingkat 1'},
+  {k:'start1',t:'text',req:1,ja:'特定技能1号として働き始めた時期（パスポートに貼ってあります）',vi:'Thời điểm bắt đầu làm KNĐĐ số 1 (dán trong hộ chiếu)',id:'Kapan mulai kerja SSW 1 (tertempel di paspor)'},
   {k:'reason',t:'area',req:1,ja:'2号を取得したい理由',vi:'Lý do muốn lấy số 2',id:'Alasan ingin Tingkat 2'},
   {k:'examtime',t:'text',req:1,ja:'受験予定時期',vi:'Thời gian dự kiến thi',id:'Perkiraan waktu ujian'},
+  {k:'understand',t:'select',req:1,o:['はい','いいえ'],oL:{vi:['Có','Không'],id:['Ya','Tidak']},
+   ja:'2号の働き方について理解していますか',vi:'Bạn có hiểu cách làm việc của Tingkat 2 không?',id:'Apakah Anda paham cara kerja Tingkat 2?'}
+ ]},
+
+{k:'在留期間更新・在留資格変更許可申請', em:'🛂', sum:['kind','limit','wish'],
+ ja:'在留期間更新・在留資格変更許可申請', vi:'Xin gia hạn / đổi tư cách lưu trú', id:'Perpanjangan / perubahan izin tinggal',
+ note:{ja:'申請前に必ず職長へ相談してください。書類は総務（経営管理部）と進めます。',
+       vi:'Trước khi nộp, nhất định hãy trao đổi với tổ trưởng. Giấy tờ sẽ tiến hành cùng bộ phận hành chính.',
+       id:'Sebelum mengajukan, wajib konsultasi dengan kepala regu. Dokumen diproses bersama bagian umum.'},
+ f:[
+  {k:'busho',t:'select',req:1,o:BUSHO,ja:'所属',vi:'Bộ phận',id:'Bagian'},
+  {k:'boss',t:'text',req:1,ja:'職長名',vi:'Tên tổ trưởng',id:'Nama kepala regu'},
+  {k:'who',t:'text',req:1,ja:'氏名',vi:'Họ tên',id:'Nama'},
+  {k:'kind',t:'select',req:1,o:['在留期間更新許可申請','在留資格変更許可申請'],ja:'手続きの種類',vi:'Loại thủ tục',id:'Jenis prosedur'},
+  {k:'now',t:'text',req:1,ja:'現在の在留資格',vi:'Tư cách lưu trú hiện tại',id:'Status tinggal saat ini'},
+  {k:'limit',t:'date',req:1,ja:'在留期限',vi:'Hạn lưu trú',id:'Batas izin tinggal'},
+  {k:'wish',t:'date',req:1,ja:'希望する手続き完了予定日',vi:'Ngày mong hoàn tất thủ tục',id:'Tanggal harapan selesai'},
+  {k:'status',t:'area',ja:'現在の状況（職種・等級など）',vi:'Tình trạng hiện tại (nghề・cấp bậc…)',id:'Kondisi saat ini (jenis kerja・tingkat…)'},
   {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
  ]},
 
-{k:'自動車免許等資格申請', em:'🚗', sum:['want','when'],
- ja:'自動車免許（バイク）等資格申請', vi:'Xin bằng lái xe ô tô (xe máy) v.v.', id:'Pengajuan SIM mobil (motor) dll.',
- note:{ja:'準中型限定解除・MT限定解除を含みます。申請前に、必ず事前に職長へ相談してから申請してください。',
-       vi:'Bao gồm gỡ giới hạn xe bán trung・gỡ giới hạn số sàn (MT). Trước khi nộp, nhất định phải trao đổi trước với tổ trưởng.',
-       id:'Termasuk pelepasan batas semi-menengah・pelepasan batas MT. Sebelum mengajukan, wajib berkonsultasi dulu dengan kepala regu.'},
+{k:'転入・転出届', em:'🏠', sum:['kind','moveday'],
+ ja:'転入・転出届', vi:'Khai báo chuyển đến / chuyển đi', id:'Lapor pindah masuk / keluar',
+ note:{ja:'住所が変わったとき・変わる予定のときに出してください。申請前に職長へ相談してください。',
+       vi:'Hãy nộp khi địa chỉ đã thay đổi hoặc sắp thay đổi. Trước khi nộp hãy trao đổi với tổ trưởng.',
+       id:'Ajukan saat alamat berubah atau akan berubah. Sebelum mengajukan, konsultasi dengan kepala regu.'},
  f:[
+  {k:'busho',t:'select',req:1,o:BUSHO,ja:'所属',vi:'Bộ phận',id:'Bagian'},
   {k:'boss',t:'text',req:1,ja:'職長名',vi:'Tên tổ trưởng',id:'Nama kepala regu'},
-  {k:'have',t:'text',req:1,ja:'現在持っている免許',vi:'Bằng lái hiện có',id:'SIM yang dimiliki sekarang'},
-  {k:'want',t:'text',req:1,ja:'取得したい免許・限定解除',vi:'Bằng・gỡ giới hạn muốn lấy',id:'SIM・pelepasan batas yang diinginkan'},
-  {k:'reason',t:'area',req:1,ja:'取得したい理由',vi:'Lý do muốn lấy',id:'Alasan ingin mengambil'},
-  {k:'when',t:'text',req:1,ja:'希望時期',vi:'Thời gian mong muốn',id:'Waktu yang diinginkan'},
-  {k:'school',t:'text',ja:'教習所名（決まっている場合のみ）',vi:'Tên trường dạy lái (nếu đã quyết định)',id:'Nama tempat kursus (jika sudah ada)'},
-  {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
- ]},
-
-{k:'日本語検定資格取得申請', em:'🗾', sum:['level','day'],
- ja:'日本語検定資格取得申請', vi:'Xin thi chứng chỉ tiếng Nhật', id:'Pengajuan sertifikat bahasa Jepang',
- note:{ja:'申請前に、必ず事前に職長へ相談してから申請してください。',
-       vi:'Trước khi nộp, nhất định phải trao đổi trước với tổ trưởng.',
-       id:'Sebelum mengajukan, wajib berkonsultasi dulu dengan kepala regu.'},
- f:[
-  {k:'boss',t:'text',req:1,ja:'職長名',vi:'Tên tổ trưởng',id:'Nama kepala regu'},
-  {k:'have',t:'text',req:1,ja:'現在持っている日本語資格',vi:'Chứng chỉ tiếng Nhật hiện có',id:'Sertifikat bahasa Jepang yang dimiliki'},
-  {k:'level',t:'text',req:1,ja:'今回受験したい級',vi:'Cấp muốn thi lần này',id:'Level yang ingin diujikan kali ini'},
-  {k:'day',t:'date',req:1,ja:'受験予定日',vi:'Ngày dự kiến thi',id:'Tanggal rencana ujian'},
-  {k:'reason',t:'area',req:1,ja:'受験したい理由',vi:'Lý do muốn thi',id:'Alasan ingin ujian'},
-  {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
- ]},
-
-{k:'その他資格取得申請', em:'🎓', sum:['name','when'],
- ja:'その他資格取得申請', vi:'Xin lấy chứng chỉ khác', id:'Pengajuan sertifikat lainnya',
- note:{ja:'申請前に、必ず事前に職長へ相談してから申請してください。',
-       vi:'Trước khi nộp, nhất định phải trao đổi trước với tổ trưởng.',
-       id:'Sebelum mengajukan, wajib berkonsultasi dulu dengan kepala regu.'},
- f:[
-  {k:'boss',t:'text',req:1,ja:'職長名',vi:'Tên tổ trưởng',id:'Nama kepala regu'},
-  {k:'name',t:'text',req:1,ja:'取得したい資格名',vi:'Tên chứng chỉ muốn lấy',id:'Nama sertifikat yang diinginkan'},
-  {k:'reason',t:'area',req:1,ja:'取得したい理由',vi:'Lý do muốn lấy',id:'Alasan ingin mengambil'},
-  {k:'when',t:'text',req:1,ja:'希望時期',vi:'Thời gian mong muốn',id:'Waktu yang diinginkan'},
-  {k:'day',t:'date',ja:'受講・試験予定日',vi:'Ngày học/thi dự kiến',id:'Tanggal kursus/ujian'},
-  {k:'fee',t:'num',ja:'費用（円・分かる場合のみ）',vi:'Chi phí (yên・nếu biết)',id:'Biaya (yen・jika tahu)'},
+  {k:'who',t:'text',req:1,ja:'氏名',vi:'Họ tên',id:'Nama'},
+  {k:'kind',t:'select',req:1,o:['転入届','転出届'],oL:{vi:['Chuyển đến','Chuyển đi'],id:['Pindah masuk','Pindah keluar']},ja:'種類',vi:'Loại',id:'Jenis'},
+  {k:'moveday',t:'date',req:1,ja:'引っ越し日（異動日）',vi:'Ngày chuyển nhà',id:'Tanggal pindah'},
+  {k:'newaddr',t:'area',req:1,ja:'新しい住所',vi:'Địa chỉ mới',id:'Alamat baru'},
+  {k:'oldaddr',t:'area',ja:'前の住所',vi:'Địa chỉ cũ',id:'Alamat lama'},
   {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
  ]}
+
 ];
 
 /* =============================================================
  *  状態
  * ============================================================= */
-/* データのやり取り先���画面はGoogleの外（GitHub Pages）に置き、ここへ投げる。
+/* データのやり取り先、画面はGoogleの外（GitHub Pages）に置き、ここへ投げる。
    Cookieを送らない通信なので、Googleに複数アカウントでログインしていても影響を受けない。
    デプロイをやり直してURLが変わったら API を差し替える。TOKEN は Code.gs の API_TOKEN と必ず同じにする。 */
 var API   = 'https://script.google.com/macros/s/AKfycbzHhCxNy0gyfXFrUusENS4Un3qjdv4cWqlMbIOKP8mMMkJZmCpCObyCDDNiJkjeRbU7/exec';
@@ -429,7 +379,7 @@ function seedDemo(){
     {id:'D-0001',_at:ago(12),type:'社用車使用申請書',applicant:'見本　生産社員',dept:'生産',site:'熊本',
      boss:'見本　生産執行役',exec:'',state:'承認待ち',summary:'熊本→広島 出荷応援',amount:0,
      fields:[{k:'purpose',label:'使用目的',value:'東広島事業所へ出荷の応援に行くため'},
-             {k:'dest',label:'目的地',value:'東広島事���所'},{k:'car',label:'車種',value:'ハイエース'}]},
+             {k:'dest',label:'目的地',value:'東広島事業所'},{k:'car',label:'車種',value:'ハイエース'}]},
     {id:'D-0002',_at:ago(7),type:'残業報告確認書',applicant:'見本　センター社員',dept:'センター',site:'熊本',
      boss:'見本　センター執行役',exec:'',state:'承認待ち',summary:'17:30 / 2時間 / ヘルプ',amount:0,
      fields:[{k:'time',label:'予定時間（残業を始める時間）',value:'17:30'},
@@ -442,7 +392,7 @@ function seedDemo(){
              {k:'talked',label:'職長に相談して許可をもらいました',value:'はい'}]},
     {id:'D-0004',_at:ago(2),type:'有給休暇届',applicant:'MIHON A',dept:'生産',site:'熊本',
      boss:'見本　生産執行役',exec:'',state:'承認待ち',summary:'年次有給休暇 / 9/10 〜 9/11 / 2',amount:0,
-     fields:[{k:'kubun',label:'��暇区分',value:'年次有給休暇'},{k:'days',label:'日数',value:'2'}]}
+     fields:[{k:'kubun',label:'休暇区分',value:'年次有給休暇'},{k:'days',label:'日数',value:'2'}]}
   ];
   s.forEach(function(r){ r.submitted=fmt(r._at); });
   localStorage.setItem('kr_demo',JSON.stringify(s));
@@ -702,17 +652,7 @@ function vTypes(){
     b.onclick=function(){ go('form',F.k); };
     g.appendChild(b);
   });
-  // ビザ・在留資格は Googleフォームで運用（設定シートの ビザ申請フォームURL が空ならタイルは出ない）
-  var vurl = (BOOT.config||{})['ビザ申請フォームURL'];
-  if(vurl){
-    var vb = el('<button style="border-color:#2f7a3d;background:#eaf3ea">'+
-      '<span class="em">🛂</span><span>'+T(UI.visa)+'</span>'+
-      '<span class="sub">'+T(UI.visaS)+'</span></button>');
-    vb.onclick=function(){ window.open(vurl,'_blank'); };
-    g.appendChild(vb);
-  }
   put(g);
-  if(vurl) put('<div class="note">'+T(UI.visaNote)+'</div>');
   if(lang!=='ja') put('<p class="hint">日本語だけの用紙は「日本語」に切り替えると出ます。</p>');
 }
 
@@ -735,7 +675,7 @@ function vForm(key){
       var loc = (fl.oL && fl.oL[lang]) ? fl.oL[lang] : null;
       body='<select id="'+id+'"><option value=""></option>'+
         fl.o.map(function(o,i){
-          var show = loc ? (loc[i]+'（'+o+'）') : o;      // 現地語（��本語）で併記
+          var show = loc ? (loc[i]+'（'+o+'）') : o;      // 現地語（日本語）で併記
           return '<option value="'+esc(o)+'">'+esc(show)+'</option>';
         }).join('')+'</select>';
     } else if(fl.t==='area'){
@@ -1003,7 +943,7 @@ function demo(fn,args){
     var p=args[0], all=dstore();
     var e=DEMO_EMP.filter(function(x){return dnorm(x.name)===dnorm(p.empName);})[0]||{dept:'',site:'',no:'',boss:'見本　専務'};
     var exec = (p.type==='一時帰国希望申請書'||Number(p.amount)>=100000)
-      ? '見本　���長' : '見本　専務';
+      ? '見本　社長' : '見本　専務';
     var r={id:'D-'+('000'+(all.length+1)).slice(-4), submitted:new Date().toISOString().slice(0,16).replace('T',' '),
       _at:new Date().toISOString(), type:p.type, applicant:p.empName, empNo:e.no, dept:e.dept, site:e.site,
       boss:e.boss, exec:'', state:'承認待ち', bossAt:'', bossComment:'', execAt:'', execComment:'',
