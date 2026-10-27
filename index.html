@@ -190,6 +190,29 @@ var FORMS = [
   {k:'reason',t:'area',ja:'理由（任意）',vi:'Lý do (nếu có)',id:'Alasan (opsional)'}
  ]},
 
+/* 病欠届（就業規則：病気欠勤が7日以上のときは医師の診断書が必要）。
+   欠勤日数を7以上にすると「診断書を提出します」チェックが必須になる（reqIf min:7）。
+   診断書そのものは添付せず、経営管理部 木ノ下へ提出する運用。 */
+{k:'病欠届', em:'🤒', sum:['from','to','days'],
+ ja:'病欠届', vi:'Đơn nghỉ ốm', id:'Surat izin sakit',
+ note:{ja:'・病気などでやむを得ず欠勤するときは、できるだけ事前に、無理なら事後すみやかに届け出てください。\n・病気欠勤が7日以上におよぶときは、医師の診断書の提出が必要です（就業規則）。診断書は経営管理部 木ノ下へ提出してください。',
+       vi:'・Khi phải nghỉ vì ốm, hãy báo trước nếu được, nếu không kịp thì báo ngay sau đó.\n・Nếu nghỉ ốm từ 7 ngày trở lên, cần nộp giấy chẩn đoán của bác sĩ (nội quy). Nộp cho anh Kinoshita (bộ phận quản lý).',
+       id:'・Jika terpaksa absen karena sakit, beri tahu sebelumnya bila bisa, jika tidak sempat segera lapor setelahnya.\n・Jika sakit 7 hari atau lebih, wajib menyerahkan surat keterangan dokter (peraturan). Serahkan ke Bpk. Kinoshita (bagian manajemen).'},
+ f:[
+  {k:'busho',t:'select',req:1,o:BUSHO,ja:'所属',vi:'Bộ phận',id:'Bagian'},
+  {k:'who',t:'text',req:1,ja:'氏名',vi:'Họ tên',id:'Nama'},
+  {k:'from',t:'date',req:1,ja:'欠勤を始めた日',vi:'Ngày bắt đầu nghỉ',id:'Tanggal mulai absen'},
+  {k:'to',t:'date',req:1,ja:'復帰予定日',vi:'Ngày dự kiến đi làm lại',id:'Tanggal rencana masuk lagi'},
+  {k:'days',t:'num',req:1,ja:'欠勤日数（日）',vi:'Số ngày nghỉ',id:'Jumlah hari absen'},
+  {k:'symptom',t:'area',req:1,ja:'症状・理由',vi:'Triệu chứng / lý do',id:'Gejala / alasan'},
+  {k:'hospital',t:'text',ja:'受診した病院（分かれば）',vi:'Bệnh viện đã khám (nếu có)',id:'Rumah sakit yang didatangi (jika ada)'},
+  {k:'cert',t:'check',reqIf:{k:'days',min:7},
+   ja:'医師の診断書を提出します（7日以上の病欠は必須）',
+   vi:'Tôi sẽ nộp giấy chẩn đoán của bác sĩ (bắt buộc nếu nghỉ từ 7 ngày)',
+   id:'Saya akan menyerahkan surat dokter (wajib jika 7 hari atau lebih)'},
+  {k:'memo',t:'text',ja:'備考',vi:'Ghi chú',id:'Catatan'}
+ ]},
+
 {k:'残業報告確認書', em:'🕗', sum:['date','time','hours','reason'],
  ja:'残業報告確認書', vi:'Phiếu xác nhận báo cáo làm thêm giờ', id:'Formulir Konfirmasi Laporan Lembur',
  note:{ja:'1時間以上の残業が見込まれるときに、事前に申請してください。',
@@ -724,9 +747,15 @@ function collect(F){
   });
   F.f.forEach(function(fl){
     var v=val[fl.k];
-    /* reqIf の v は1つでも配列でもOK（配列なら「どれか一致」で必須になる） */
-    var rq = fl.reqIf ? (Array.isArray(fl.reqIf.v) ? fl.reqIf.v.indexOf(val[fl.reqIf.k])>=0
-                                                   : val[fl.reqIf.k]===fl.reqIf.v) : false;
+    /* reqIf：別項目の値で必須にする。
+       v=1つ/配列（どれか一致で必須） または min=数値（別項目が○以上のとき必須） */
+    var rq=false;
+    if(fl.reqIf){
+      var rv=val[fl.reqIf.k];
+      if('min' in fl.reqIf){ rq=(parseFloat(String(rv).replace(/[^0-9.\-]/g,''))||0) >= fl.reqIf.min; }
+      else if(Array.isArray(fl.reqIf.v)){ rq=fl.reqIf.v.indexOf(rv)>=0; }
+      else { rq=(rv===fl.reqIf.v); }
+    }
     var need = fl.req || rq;
     if(need && !miss){
       if(fl.t==='checks'){ if(val['__n_'+fl.k] < fl.o.length) miss=T(fl); }
