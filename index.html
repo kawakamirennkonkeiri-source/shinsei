@@ -154,7 +154,25 @@ var UI = {
   back2:{ja:'差戻されました',vi:'Bị trả lại',id:'Dikembalikan'},
   days:{ja:'営業日 経過',vi:'ngày làm việc',id:'hari kerja'},
   yes:{ja:'はい',vi:'Có',id:'Ya'}, no:{ja:'いいえ',vi:'Không',id:'Tidak'},
-  loading:{ja:'よみこみ中…',vi:'Đang tải…',id:'Memuat…'}
+  loading:{ja:'よみこみ中…',vi:'Đang tải…',id:'Memuat…'},
+  /* 期限のお知らせ（ビザ・特定技能の期限） */
+  expiry:{ja:'期限のお知らせ',vi:'Thông báo về hạn',id:'Pemberitahuan batas waktu'},
+  expiryS:{ja:'ビザ・特定技能の期限',vi:'Hạn visa / kỹ năng đặc định',id:'Batas visa / SSW'},
+  expNone:{ja:'期限が近い人はいません',vi:'Hiện không có ai sắp đến hạn',id:'Tidak ada yang mendekati batas'},
+  expVisaLbl:{ja:'ビザ更新期限',vi:'Hạn gia hạn visa',id:'Batas perpanjangan visa'},
+  expVisaDate:{ja:'在留期限',vi:'Hạn lưu trú',id:'Batas izin tinggal'},
+  expVisaOver:{ja:'在留期限 切れ',vi:'Đã quá hạn lưu trú',id:'Izin tinggal kedaluwarsa'},
+  expSswLbl:{ja:'特定技能1号 残り',vi:'KNĐĐ số 1 còn lại',id:'SSW Tingkat 1 tersisa'},
+  expSswOver:{ja:'特定技能1号 満了',vi:'KNĐĐ số 1 đã hết hạn',id:'SSW Tingkat 1 berakhir'},
+  expSswDate:{ja:'5年満了',vi:'Hết 5 năm',id:'Habis 5 tahun'},
+  expBefore:{ja:'前',vi:'trước',id:'lagi'},
+  expCheck:{ja:'要確認',vi:'Cần kiểm tra',id:'Perlu dicek'},
+  expYear:{ja:'年',vi:' năm',id:' tahun'},
+  expMonth:{ja:'か月',vi:' tháng',id:' bulan'},
+  expUpd:{ja:'名簿「在留期限」タブ',vi:'Bảng “Hạn lưu trú” của danh sách',id:'Tab “Batas tinggal” daftar'},
+  expContact:{ja:'手続きの相談は 経営管理部 フエン まで',
+              vi:'Tư vấn thủ tục: Bộ phận quản lý - Huyen',
+              id:'Konsultasi prosedur: Bagian manajemen - Huyen'}
 };
 
 /* 時刻のプルダウン（4:00〜22:00 を30分きざみ） */
@@ -359,8 +377,13 @@ var CACHE_TTL = {          // ミリ秒。この時間内はもう一度通信�
   api_inbox:     60000,    // 確認待ち：60秒
   api_myList:    60000,    // 自分の申請：60秒
   api_board:    120000,    // みんなの状況：120秒
-  api_dashboard:120000     // ダッシュボード：120秒
+  api_dashboard:120000,    // ダッシュボード：120秒
+  api_expiry:   300000     // 期限のお知らせ：5分（月2回しか変わらない）
 };
+/* 「期限のお知らせ」を見られる人（承認者＝部署長 は自部署ぶん、下の人は全員ぶん）。
+   実際の絞り込みはサーバ側でも行う（この一覧はタイルを出すかどうかの判定用）。 */
+var EXPIRY_VIEWERS = ['ホアン　テイ　フエン','川上　大介','川上　一歩','木ノ下　茜']
+  .map(function(x){return x.replace(/\s/g,'');});
 function clearCache(){ CACHE = {}; }   // 申請・承認・交代のあとに呼ぶ
 
 function $(id){ return document.getElementById(id); }
@@ -444,7 +467,8 @@ function render(){
   $('hOut').style.display  = (ME && VIEW.length===1) ? '' : 'none';
   $('hTitle').textContent  = ME ? (ME.name + (ME.title?'（'+ME.title+'）':'')) : 'カワカミ蓮根 申請';
   var f = { login:vLogin, pin:vPin, home:vHome, types:vTypes, form:vForm,
-            mine:vMine, inbox:vInbox, detail:vDetail, dash:vDash, board:vBoard }[cur[0]];
+            mine:vMine, inbox:vInbox, detail:vDetail, dash:vDash, board:vBoard,
+            expiry:vExpiry }[cur[0]];
   $('app').innerHTML=''; f(cur[1]);
   window.scrollTo(0,0);
 }
@@ -616,6 +640,20 @@ function vHome(){
     var b4 = el('<button class="big"><span class="em">📊</span><span>'+T(UI.dash)+
       '<span class="sub">'+T(UI.dashS)+'</span></span></button>');
     b4.onclick=function(){ go('dash'); }; put(b4);
+  }
+
+  /* 期限のお知らせ（ビザ・特定技能の期限）。見られる人（部署長・労務・役員）だけ、
+     かつ期限が近い人がいるときだけ出す。中身は所属で絞ってサーバが返す。 */
+  var canExp = ME.isApprover || EXPIRY_VIEWERS.indexOf((ME.name||'').replace(/\s/g,''))>=0;
+  if(canExp){
+    var be = el('<button class="big" id="expTile" style="display:none;border-color:#e0a800;background:#fff8e6">'+
+      '<span class="em">⏰</span><span>'+T(UI.expiry)+
+      '<span class="sub">'+T(UI.expiryS)+'</span></span><span class="bd" id="expBdg"></span></button>');
+    be.onclick=function(){ go('expiry'); }; put(be);
+    call('api_expiry',[ME.name],function(r){
+      var n=(r&&r.list)?r.list.length:0;
+      if(n>0){ var e=$('expBdg'); if(e) e.textContent=n; var t=$('expTile'); if(t) t.style.display=''; }
+    });
   }
 
   /* 押した瞬間に開くよう、よく見る画面を裏で先読みしておく（初回タップも速くする）。
@@ -922,6 +960,37 @@ function vDash(){
   });
 }
 
+/* ---------- 10. 期限のお知らせ（ビザ・特定技能の期限） ---------- */
+function expDur(days){
+  var d=Math.abs(days);
+  if(d>=330){ var y=Math.round(d/365); return (y<1?1:y)+T(UI.expYear); }
+  var m=Math.round(d/30); return (m<1?1:m)+T(UI.expMonth);
+}
+function vExpiry(){
+  put('<h2>⏰ '+T(UI.expiry)+'</h2>');
+  var box=el('<div>'+T(UI.loading)+'</div>'); put(box);
+  call('api_expiry',[ME.name],function(r){
+    box.innerHTML='';
+    var list=(r&&r.list)||[];
+    put('<div class="m" style="margin:2px 0 10px;color:#6a736c">'+list.length+T(UI.cases)+
+        (r&&r.updated?'　'+T(UI.expUpd)+'　'+esc(r.updated)+' 更新':'')+'</div>');
+    if(!list.length){ box.appendChild(el('<div class="card">'+T(UI.expNone)+' 🎉</div>')); return; }
+    list.forEach(function(x){
+      var ssw = x.kind==='特定技能1号';
+      var cls = x.over ? 'b' : (x.days<=60 ? 'w' : '');
+      var chip = x.over ? T(UI.expCheck) : (ssw ? '特定技能' : 'ビザ');
+      var main = x.over ? (ssw ? T(UI.expSswOver) : T(UI.expVisaOver))
+                        : (ssw ? T(UI.expSswLbl)+expDur(x.days) : T(UI.expVisaLbl)+' '+expDur(x.days)+T(UI.expBefore));
+      var sub  = (ssw ? T(UI.expSswDate) : T(UI.expVisaDate))+' '+esc(x.date);
+      box.appendChild(el('<div class="item '+cls+'">'+
+        '<div class="h">'+esc(x.name)+(x.dept?'（'+esc(x.dept)+'）':'')+'</div>'+
+        '<div class="m" style="margin-top:4px"><span class="tag '+cls+'">'+esc(chip)+'</span>　'+esc(main)+'</div>'+
+        '<div class="m">'+esc(sub)+(x.memo?'　'+esc(x.memo):'')+'</div></div>'));
+    });
+    box.appendChild(el('<p class="hint">'+T(UI.expContact)+'</p>'));
+  });
+}
+
 /* =============================================================
  *  デモ用（GASに載せると使われません）
  * ============================================================= */
@@ -1036,6 +1105,13 @@ function demo(fn,args){
       stats:{openCount:open.length,over3:open.filter(function(r){return r.stayDays>=3;}).length,
         over5:open.filter(function(r){return r.stayDays>=5;}).length,
         doneThisMonth:all.filter(function(r){return r.state==='承認済み';}).length, avgLead:0}};
+  }
+  if(fn==='api_expiry'){
+    return {updated:'10/16', list:[
+      {name:'見本　グエン',dept:'生産',kind:'ビザ',date:'2026/10/24',days:-10,over:true,memo:''},
+      {name:'見本　チャン',dept:'センター',kind:'ビザ',date:'2027/01/15',days:120,over:false,memo:''},
+      {name:'見本　ブディ',dept:'広島',kind:'特定技能1号',date:'2027/09/30',days:330,over:false,memo:''}
+    ]};
   }
   return {ok:false,msg:'demo: '+fn};
 }
